@@ -1,0 +1,14 @@
+{
+  "require": {
+    "phpseclib/phpseclib": "2.0.31",
+    "kriswallsmith/buzz": "@stable",
+    "nyholm/psr7": "@stable",
+    "swiftmailer/swiftmailer": "@stable",
+    "lcobucci/jwt": "3.2",
+    "ramsey/uuid": "@stable",
+    "ext-json": "*",
+    "ext-openssl": "*"
+  },
+  "name": "johnthe.dev/personal-webpage",
+  "description": "Personal Website for John The Dev"
+}
