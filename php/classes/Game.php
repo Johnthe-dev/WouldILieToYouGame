@@ -4,11 +4,12 @@ namespace JOHNTHEDEV\Game;
 require_once(dirname(__DIR__) . "/Classes/autoload.php");
 require_once(dirname(__DIR__, 1) . "/vendor/autoload.php");
 
+use JetBrains\PhpStorm\ArrayShape;
 use Ramsey\Uuid\UuidInterface;
 
 
 /**
- * Class message will store the entries in the knowledge system
+ * Class game will store the games
  * @package JohnTheDev
  *
  * Description: This class will hold the game info.
@@ -20,7 +21,7 @@ class Game implements \JsonSerializable {
     use ValidateDate;
 
     /**
-     * id for message; Primary key - Not null, uuid
+     * id for game; Primary key - Not null, uuid
      * @var UuidInterface $gameId
      */
     private UuidInterface $gameId;
@@ -61,6 +62,12 @@ class Game implements \JsonSerializable {
      */
     private ?int $gameTeamOneScore;
 
+    /**
+     * team one score - nullable, int
+     * @var $gameTeamOneScore ?int
+     */
+    private ?int $gameTeamTwoScore;
+
 
     /***
      *       _____    ____    _   _    _____   _______   _____    _    _    _____   _______    ____    _____
@@ -72,7 +79,7 @@ class Game implements \JsonSerializable {
      */
 
     /**
-     * Message constructor.
+     * Game constructor.
      * @param string $gameId
      * @param string $gameCode
      * @param \DateTime|string|null $gameCreated
@@ -135,7 +142,7 @@ class Game implements \JsonSerializable {
         } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
             //throws exception if the uuid is invalid.
             $exceptionType = get_class($exception);
-            throw(new $exceptionType("Message Class Exception: setGameId: " . $exception->getMessage(), 0, $exception));
+            throw(new $exceptionType("Game Class Exception: setGameId: " . $exception->getMessage(), 0, $exception));
         }
         $this->gameId = $uuid;
     }
@@ -164,7 +171,7 @@ class Game implements \JsonSerializable {
 
         //checks if string length is appropriate
         if (strlen($newGameCode) > 60000) {
-            throw (new \RangeException("Message Class Exception: GameCode is too long"));
+            throw (new \RangeException("Game Class Exception: GameCode is too long"));
         }
         $this->gameCode = $newGameCode;
     }
@@ -195,7 +202,7 @@ class Game implements \JsonSerializable {
                 $newGameCreated = self::validateDateTime($newGameCreated);
             } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
                 $exceptionType = get_class($exception);
-                throw(new $exceptionType("Message Class Exception: setGameCreated: " . $exception->getMessage(), 0, $exception));
+                throw(new $exceptionType("Game Class Exception: setGameCreated: " . $exception->getMessage(), 0, $exception));
             }
             $this->gameCreated = $newGameCreated;
         }
@@ -227,10 +234,133 @@ class Game implements \JsonSerializable {
                 $newGameActivity = self::validateDateTime($newGameActivity);
             } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
                 $exceptionType = get_class($exception);
-                throw(new $exceptionType("Message Class Exception: setGameCreated: " . $exception->getMessage(), 0, $exception));
+                throw(new $exceptionType("Game Class Exception: setGameCreated: " . $exception->getMessage(), 0, $exception));
             }
             $this->gameActivity = $newGameActivity;
         }
+    }
+
+    /**
+     * Accessor Method for gameCurrentPlayer
+     *
+     * @return Player
+     */
+    public function getGameCurrentPlayer(): Player
+    {
+        return ($this->gameCurrentPlayer);
+    }
+
+    /**
+     * Mutator Method for gameCurrentPlayer
+     *
+     * @param string|UuidInterface $newGameCurrentPlayer
+     * @throws \Exception if $newGameCurrentPlayer is an invalid argument, out of range, has a type error, or has another exception.
+     */
+    public function setGameCurrentPlayer(string|UuidInterface $newGameCurrentPlayer): void
+    {
+
+        try {
+            //makes sure uuid is valid
+            $uuid = self::validateUuid($newGameCurrentPlayer);
+        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            //throws exception if the uuid is invalid.
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Game Class Exception: setGameId: " . $exception->getMessage(), 0, $exception));
+        }
+        $this->gameCurrentPlayer = Player::getPlayerByPlayerId($uuid->toString());
+    }
+
+    /**
+     * Accessor Method for gameCurrentStatement
+     *
+     * @return Statement
+     */
+    public function getGameCurrentStatement(): Statement
+    {
+        return ($this->gameCurrentStatement);
+    }
+
+    /**
+     * Mutator Method for gameCurrentStatement
+     *
+     * @param string|UuidInterface $newGameCurrentStatement
+     * @throws \Exception if $newGameCurrentStatement is an invalid argument, out of range, has a type error, or has another exception.
+     */
+    public function setGameCurrentStatement(string|UuidInterface $newGameCurrentStatement): void
+    {
+
+        try {
+            //makes sure uuid is valid
+            $uuid = self::validateUuid($newGameCurrentStatement);
+        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            //throws exception if the uuid is invalid.
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Game Class Exception: setGameId: " . $exception->getMessage(), 0, $exception));
+        }
+        $this->gameCurrentStatement = Statement::getStatementByStatementId($uuid->toString());
+    }
+
+    /**
+     * Accessor Method for gameTeamOneScore
+     *
+     * @return ?int
+     */
+    public function getGameTeamOneScore(): ?int
+    {
+        return ($this->gameTeamOneScore);
+    }
+
+    /**
+     * Mutator Method for gameTeamOneScore
+     *
+     * @param ?int $newGameTeamOneScore
+     * @throws \Exception if $newGameTeamOneScore is an invalid argument, out of range, has a type error, or has another exception.
+     */
+    public function setGameTeamOneScore(?int $newGameTeamOneScore): void
+    {
+        //filter out invalid input and check if value is empty
+        if(empty($newGameTeamOneScore)){
+            $newGameTeamOneScore = null;
+        }else{
+            $newGameTeamOneScore = filter_var($newGameTeamOneScore, FILTER_VALIDATE_INT);
+            if($newGameTeamOneScore===false){
+                throw new \InvalidArgumentException("Game Class Exception: Team One Score is invalid");
+            }
+        }
+
+        $this->gameTeamOneScore = $newGameTeamOneScore;
+    }
+
+
+    /**
+     * Accessor Method for gameTeamTwoScore
+     *
+     * @return ?int
+     */
+    public function getGameTeamTwoScore(): ?int
+    {
+        return ($this->gameTeamTwoScore);
+    }
+
+    /**
+     * Mutator Method for gameTeamTwoScore
+     *
+     * @param ?int $newGameTeamTwoScore
+     * @throws \Exception if $newGameTeamTwoScore is an invalid argument, out of range, has a type error, or has another exception.
+     */
+    public function setGameTeamTwoScore(?int $newGameTeamTwoScore): void
+    {
+        //filter out invalid input and check if value is empty
+        if(empty($newGameTeamTwoScore)){
+            $newGameTeamTwoScore = null;
+        }else{
+            $newGameTeamTwoScore = filter_var($newGameTeamTwoScore, FILTER_VALIDATE_INT);
+            if($newGameTeamTwoScore===false){
+                throw new \InvalidArgumentException("Game Class Exception: Team Two Score is invalid");
+            }
+        }
+
+        $this->gameTeamTwoScore = $newGameTeamTwoScore;
     }
 
 //
@@ -245,7 +375,7 @@ class Game implements \JsonSerializable {
 //
     /**
      * INSERT
-     * Inserts Message into MySQL
+     * Inserts Game into MySQL
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException if MySQL errors occur
@@ -254,20 +384,18 @@ class Game implements \JsonSerializable {
     public function insert(\PDO $pdo): void
     {
         //create query template
-        $query = "INSERT INTO message(gameId, gameCode, gameCreated) VALUES(:gameId, :gameCode, :gameCreated)";
+        $query = "INSERT INTO game(gameId, gameCode, gameCreated, gameActivity, gameCurrentPlayerId, gameCurrentStatementId, 
+                 gameTeamOneScore, gameTeamTwoScore) VALUES(:gameId, :gameCode, :gameCreated, :gameActivity, :gameCurrentPlayerId, 
+                                                            :gameCurrentStatementId, :gameTeamOneScore, :gameTeamTwoScore)";
         $statement = $pdo->prepare($query);
         //create parameters for query
-        $parameters = [
-            "gameId" => $this->gameId->getBytes(),
-            "gameCode" => $this->gameCode,
-            "gameCreated" => $this->gameCreated->format("Y-m-d H:i:s")
-        ];
+        $parameters = $this->getParameters();
         $statement->execute($parameters);
     }
 //
     /**
      * UPDATE
-     * updates Message in MySQL database
+     * updates Game in MySQL database
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException when MySQL related error occurs
@@ -276,20 +404,19 @@ class Game implements \JsonSerializable {
     public function update(\PDO $pdo): void
     {
         //create query template
-        $query = "UPDATE message SET gameCode=:gameCode, gameCreated=:gameCreated WHERE gameId = :gameId";
+        $query = "UPDATE game SET gameCode = :gameCode, gameCreated = :gameCreated, gameActivity = :gameActivity,
+                    gameCurrentPlayerId = :gameCurrentPlayerId, gameCurrentStatementId = :gameCurrentStatementId, 
+                    gameTeamOneScore = :gameTeamOneScore, gameTeamTwoScore = :gameTeamTwoScore WHERE gameId = :gameId
+ ";
         $statement = $pdo->prepare($query);
         // set parameters to execute query
-        $parameters = [
-            "gameId" => $this->gameId->getBytes(),
-            "gameCode" => $this->gameCode,
-            "gameCreated" => $this->gameCreated->format("Y-m-d H:i:s")
-        ];
+        $parameters = $this->getParameters();
         $statement->execute($parameters);
     }
 //
     /**
      * DELETE
-     * deletes Message from MySQL database
+     * deletes Game from MySQL database
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException when mysql related errors occur
@@ -298,89 +425,107 @@ class Game implements \JsonSerializable {
     public function delete(\PDO $pdo): void
     {
         //create query template
-        $query = "DELETE FROM message WHERE gameId = :gameId";
+        $query = "DELETE FROM game WHERE gameId = :gameId";
         $statement = $pdo->prepare($query);
         //set parameters to execute query
         $parameters = ["gameId" => $this->gameId->getBytes()];
         $statement->execute($parameters);
     }
+
+    #[ArrayShape(["gameId" => "string", "gameCode" => "string", "gameCreated" => "string", "gameActivity" => "string",
+        "gameCurrentPlayerId" => "mixed", "gameCurrentStatementId" => "mixed", "gameTeamOneScore" => "int|null",
+        "gameTeamTwoScore" => "int|null"])] private function getParameters(): array {
+
+        $currentPlayerId = $this->gameCurrentPlayer === null ? null : $this->gameCurrentPlayer->getPlayerId()->getBytes();
+        $currentStatementId = $this->gameCurrentStatement === null ? null : $this->gameCurrentStatement->getStatementId()->getBytes();
+        return [
+            "gameId" => $this->gameId->getBytes(),
+            "gameCode" => $this->gameCode,
+            "gameCreated" => $this->gameCreated->format("Y-m-d H:i:s"),
+            "gameActivity" => $this->gameActivity->format("Y-m-d H:i:s"),
+            "gameCurrentPlayerId" => $currentPlayerId,
+            "gameCurrentStatementId" => $currentStatementId,
+            "gameTeamOneScore" => $this->gameTeamOneScore,
+            "gameTeamTwoScore" => $this->gameTeamTwoScore
+        ];
+    }
 //
 
     /**
-     * get message by gameId
+     * get game by gameId
      *
      * @param \PDO $pdo
      * @param string $gameId
-     * @return Message|null
+     * @return Game|null
      * @throws \PDOException when mysql related errors occur
      * @throws \TypeError when variable doesn't follow typehints
      * @throws \Exception
      */
-    public static function getMessageByGameId(\PDO $pdo, string $gameId): ?Message
+    public static function getGameByGameId(\PDO $pdo, string $gameId): ?Game
     {
         //trim and filter out invalid input
         try {
             $gameId = self::validateUuid($gameId);
         } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
             $exceptionType = get_class($exception);
-            throw(new $exceptionType("Message Class Exception: getMessageByGameId: " . $exception->getMessage(), 0, $exception));
+            throw(new $exceptionType("Game Class Exception: getGameByGameId: " . $exception->getMessage(), 0, $exception));
         }
 
         //create query template
-        $query = "SELECT gameId, gameCode, gameCreated FROM message WHERE gameId = :gameId";
+        $query = "SELECT gameId, gameCode, gameCreated FROM game WHERE gameId = :gameId";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
         $parameters = ["gameId" => $gameId->getBytes()];
         $statement->execute($parameters);
 
-        //grab message from MySQL
+        //grab game from MySQL
         try {
-            $message = null;
+            $game = null;
             $statement->setFetchMode(\PDO::FETCH_ASSOC);
             $row = $statement->fetch();
             if ($row !== false) {
-                $message = new Message($row["gameId"], $row["gameCode"], $row["gameCreated"]);
+                $game = new Game($row["gameId"], $row["gameCode"], $row["gameCreated"]);
             }
         } catch (\Exception $exception) {
             //if row can't be converted rethrow it
             throw(new \PDOException($exception->getMessage(), 0, $exception));
         }
-        return ($message);
+        return ($game);
 
     }
 
     /**
-     * get all messages ordered by date
+     * get all games ordered by date
      *
      * @param \PDO $pdo
      * @return array
      * @throws \PDOException when mysql related errors occur
      * @throws \TypeError when variable doesn't follow typehints
      */
-    public static function getAllMessages(\PDO $pdo): array
+    public static function getAllGames(\PDO $pdo): array
     {
         //create query template
-        $query = "SELECT gameId, gameCode, gameCreated FROM message ORDER BY gameCreated DESC";
+        $query = "SELECT gameId, gameCode, gameCreated FROM game ORDER BY gameCreated DESC";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
         $parameters = [];
         $statement->execute($parameters);
 
-        //grab message from MySQL
-        $messages = array();
+        //grab game from MySQL
+        $games = array();
         $statement->setFetchMode(\PDO::FETCH_ASSOC);
         while (($row = $statement->fetch()) !== false) {
             try {
-                $message = new Message($row["gameId"], $row["gameCode"], $row["gameCreated"]);
-                $messages[] = $message;
+                $game = new Game($row["gameId"], $row["gameCode"], $row["gameCreated"]);
+                $games[] = $game;
             } catch (\Exception $exception) {
                 //if row can't be converted rethrow it
                 throw(new \PDOException($exception->getMessage(), 0, $exception));
             }
         }
-        return ($messages);
+        return ($games);
     }
 
     /**

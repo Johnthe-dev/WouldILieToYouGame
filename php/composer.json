@@ -9,6 +9,6 @@
     "ext-json": "*",
     "ext-openssl": "*"
   },
-  "name": "johnthe.dev/personal-webpage",
+  "name": "johnthe.dev/game",
   "description": "Personal Website for John The Dev"
 }
