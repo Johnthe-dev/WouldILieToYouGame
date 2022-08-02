@@ -472,7 +472,8 @@ class Game implements \JsonSerializable {
         }
 
         //create query template
-        $query = "SELECT gameId, gameCode, gameCreated FROM game WHERE gameId = :gameId";
+        $query = "SELECT gameId, gameCode, gameCreated, gameActivity, gameCurrentPlayerId, gameCurrentStatementId, 
+                 gameTeamOneScore, gameTeamTwoScore FROM game WHERE gameId = :gameId";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
@@ -485,7 +486,9 @@ class Game implements \JsonSerializable {
             $statement->setFetchMode(\PDO::FETCH_ASSOC);
             $row = $statement->fetch();
             if ($row !== false) {
-                $game = new Game($row["gameId"], $row["gameCode"], $row["gameCreated"]);
+                $game = new Game($row["gameId"], $row["gameCode"], $row["gameCreated"], $row["gameActivity"],
+                    $row["gameCurrentPlayerId"], $row["gameCurrentStatementId"], $row["gameTeamOneScore"],
+                    $row["gameTeamTwoScore"]);
             }
         } catch (\Exception $exception) {
             //if row can't be converted rethrow it
@@ -496,40 +499,7 @@ class Game implements \JsonSerializable {
     }
 
     /**
-     * get all games ordered by date
-     *
-     * @param \PDO $pdo
-     * @return array
-     * @throws \PDOException when mysql related errors occur
-     * @throws \TypeError when variable doesn't follow typehints
-     */
-    public static function getAllGames(\PDO $pdo): array
-    {
-        //create query template
-        $query = "SELECT gameId, gameCode, gameCreated FROM game ORDER BY gameCreated DESC";
-        $statement = $pdo->prepare($query);
-
-        //set parameters to execute
-        $parameters = [];
-        $statement->execute($parameters);
-
-        //grab game from MySQL
-        $games = array();
-        $statement->setFetchMode(\PDO::FETCH_ASSOC);
-        while (($row = $statement->fetch()) !== false) {
-            try {
-                $game = new Game($row["gameId"], $row["gameCode"], $row["gameCreated"]);
-                $games[] = $game;
-            } catch (\Exception $exception) {
-                //if row can't be converted rethrow it
-                throw(new \PDOException($exception->getMessage(), 0, $exception));
-            }
-        }
-        return ($games);
-    }
-
-    /**
-     * converts DateTime to string to serialize
+     * converts DateTimes and guids to string to serialize
      *
      * @return array converts DateTime to strings
      */
@@ -541,6 +511,9 @@ class Game implements \JsonSerializable {
         }
         if ($this->gameCreated !== null) {
             $fields["gameCreated"] = $this->gameCreated->format("Y-m-d H:i:s");
+        }
+        if ($this->gameActivity !== null) {
+            $fields["gameActivity"] = $this->gameActivity->format("Y-m-d H:i:s");
         }
         return ($fields);
     }
