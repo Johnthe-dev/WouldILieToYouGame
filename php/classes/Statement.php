@@ -4,14 +4,15 @@ namespace JOHNTHEDEV\Game;
 require_once(dirname(__DIR__) . "/Classes/autoload.php");
 require_once(dirname(__DIR__, 1) . "/vendor/autoload.php");
 
+use JetBrains\PhpStorm\ArrayShape;
 use Ramsey\Uuid\UuidInterface;
 
 
 /**
- * Class message will store the entries in the knowledge system
+ * Class statement will store the statements
  * @package JohnTheDev
  *
- * Description: This class will hold the game info.
+ * Description: This class will hold the statement info.
  *
  * @author John Johnson-Rodgers <john@johnthe.dev>
  */
@@ -20,40 +21,34 @@ class Statement implements \JsonSerializable {
     use ValidateDate;
 
     /**
-     * id for message; Primary key - Not null, uuid
-     * @var UuidInterface $gameId
+     * id for statement; Primary key - Not null, uuid
+     * @var UuidInterface $statementId
      */
-    private UuidInterface $gameId;
+    private UuidInterface $statementId;
 
     /**
-     * Code for this game used to join active games - not null, string
-     * @var string $gameCode
+     * statement text - not null, string
+     * @var string $statementText
      */
-    private string $gameCode;
+    private string $statementText;
 
     /**
-     * date game was created - not null, \DateTime
-     * @var \DateTime|string $gameCreated
+     * whether the statement is true - not null, boolean
+     * @var bool $statementTrue
      */
-    private \DateTime|string $gameCreated;
+    private bool $statementTrue;
 
     /**
-     * date game was last acted in - not null, \DateTime
-     * @var \DateTime|string $gameActivity
+     * whether the statement has been used this round - not null, boolean
+     * @var bool $statementUsed
      */
-    private \DateTime|string $gameActivity;
-
+    private bool $statementUsed;
+    
     /**
-     * current statement - nullable, uuid
-     * @var ?Statement $gameCurrentStatement
+     * Uuid for the Player this statement is for - not null, uuid
+     * @var UuidInterface $statementPlayerId
      */
-    private ?Statement $gameCurrentStatement;
-
-    /**
-     * team one score - nullable, int
-     * @var $gameTeamOneScore ?int
-     */
-    private ?int $gameTeamOneScore;
+    private UuidInterface $statementPlayerId;
 
 
     /***
@@ -66,18 +61,22 @@ class Statement implements \JsonSerializable {
      */
 
     /**
-     * Message constructor.
-     * @param string $messageId
-     * @param string $messageContent
-     * @param $messageDate \DateTime|string
+     * Statement constructor.
+     * @param string $statementId
+     * @param string $statementText
+     * @param bool $statementTrue
+     * @param bool $statementUsed
+     * @param string $statementPlayerId
      * @throws \InvalidArgumentException | \RangeException | \TypeError | \Exception if setters do not work
      */
-    public function __construct(string $messageId, string $messageContent, string|\DateTime $messageDate,)
+    public function __construct(string $statementId, string $statementText, bool $statementTrue, bool $statementUsed, string $statementPlayerId)
     {
         try {
-            $this->setMessageId($messageId);
-            $this->setMessageContent($messageContent);
-            $this->setMessageDate($messageDate);
+            $this->setStatementId($statementId);
+            $this->setStatementText($statementText);
+            $this->setStatementTrue($statementTrue);
+            $this->setStatementUsed($statementUsed);
+            $this->setStatementPlayerId($statementPlayerId);
         } catch (\InvalidArgumentException | \RangeException | \TypeError | \Exception $exception) {
             $exceptionType = get_class($exception);
             throw(new $exceptionType($exception->getMessage(), 0, $exception));
@@ -94,96 +93,151 @@ class Statement implements \JsonSerializable {
      */
 
     /**
-     * Accessor for messageId, Not Null
+     * Accessor for statementId, Not Null
      * Primary Key
      *
      * @return UuidInterface
      */
-    public function getMessageId(): UuidInterface
+    public function getStatementId(): UuidInterface
     {
-        return ($this->messageId);
+        return ($this->statementId);
     }
 
     /**
-     *Mutator Method for messageId, Not Null
+     *Mutator Method for statementId, Not Null
      *Primary Key
      *
-     * @param UuidInterface|string $messageId
-     * @throws \Exception if $messageId is an invalid argument, out of range, has a type error, or has another exception.
+     * @param UuidInterface|string $statementId
+     * @throws \Exception if $statementId is an invalid argument, out of range, has a type error, or has another exception.
      */
-    public function setMessageId(UuidInterface|string $messageId): void
+    public function setStatementId(UuidInterface|string $statementId): void
     {
         try {
             //makes sure uuid is valid
-            $uuid = self::validateUuid($messageId);
+            $uuid = self::validateUuid($statementId);
         } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
             //throws exception if the uuid is invalid.
             $exceptionType = get_class($exception);
-            throw(new $exceptionType("Message Class Exception: setMessageId: " . $exception->getMessage(), 0, $exception));
+            throw(new $exceptionType("Statement Class Exception: setStatementId: " . $exception->getMessage(), 0, $exception));
         }
-        $this->messageId = $uuid;
+        $this->statementId = $uuid;
     }
 
     /**
-     * Accessor Method for messageContent
+     * Accessor Method for statementText
      *
      * @return string
      */
-    public function getMessageContent(): string
+    public function getStatementText(): string
     {
-        return ($this->messageContent);
+        return ($this->statementText);
     }
 
     /**
-     * Mutator Method for messageContent
+     * Mutator Method for statementText
      *
-     * @param string $newMessageContent
-     * @throws \Exception if $newMessageContent is an invalid argument, out of range, has a type error, or has another exception.
+     * @param string $newStatementText
+     * @throws \Exception if $newStatementText is an invalid argument, out of range, has a type error, or has another exception.
      */
-    public function setMessageContent(string $newMessageContent): void
+    public function setStatementText(string $newStatementText): void
     {
         //trim and filter out invalid input
-        $newMessageContent = trim($newMessageContent);
-        $newMessageContent = filter_var($newMessageContent, FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
+        $newStatementText = trim($newStatementText);
+        $newStatementText = filter_var($newStatementText, FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
 
         //checks if string length is appropriate
-        if (strlen($newMessageContent) > 60000) {
-            throw (new \RangeException("Message Class Exception: MessageContent is too long"));
+        if (strlen($newStatementText) > 280) {
+            throw (new \RangeException("Statement Class Exception: Statement Text is too long"));
         }
-        $this->messageContent = $newMessageContent;
+        if(strlen($newStatementText < 5)){
+            throw (new \RangeException("Statement Class Exception: Statement Text is too short"));
+        }
+        $this->statementText = $newStatementText;
     }
 
     /**
-     * Accessor Method for messageDate
+     * Accessor Method for statementTrue
      *
-     * @return \DateTime|string
+     * @return bool
      */
-    public function getMessageDate(): string|\DateTime
+    public function getStatementTrue(): bool
     {
-        return ($this->messageDate);
+        return ($this->statementTrue);
     }
 
     /**
-     * Mutator Method for messageDate
+     * Mutator Method for statementTrue
      *
-     * @param string|null $newMessageDate
-     * @throws \Exception if $newMessageDate is an invalid argument, out of range, has a type error, or has another exception.
+     * @param bool $newStatementTrue
+     * @throws \Exception if $newStatementTrue is an invalid argument, out of range, has a type error, or has another exception.
      */
-    public function setMessageDate(null|string|\DateTime $newMessageDate): void
+    public function setStatementTrue(bool $newStatementTrue): void
     {
-        //checks if $newMessageDate is null, if so set to current DateTime
-        if($newMessageDate === null){
-            $this->messageDate = new \DateTime();
-        } else {
-            try {
-                $newMessageDate = self::validateDateTime($newMessageDate);
-            } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
-                $exceptionType = get_class($exception);
-                throw(new $exceptionType("Message Class Exception: setMessageDate: " . $exception->getMessage(), 0, $exception));
-            }
-            $this->messageDate = $newMessageDate;
+        //filter out invalid input
+        $newStatementTrue = filter_var($newStatementTrue, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+        if($newStatementTrue==null){
+            throw new \InvalidArgumentException("Statement Class Exception: Statement True is invalid");
         }
+        $this->statementTrue = $newStatementTrue;
     }
+
+    /**
+     * Accessor Method for statementUsed
+     *
+     * @return bool
+     */
+    public function getStatementUsed(): bool
+    {
+        return ($this->statementUsed);
+    }
+
+    /**
+     * Mutator Method for statementUsed
+     *
+     * @param bool $newStatementUsed
+     * @throws \Exception if $newStatementUsed is an invalid argument, out of range, has a type error, or has another exception.
+     */
+    public function setStatementUsed(bool $newStatementUsed): void
+    {
+        //filter out invalid input
+        $newStatementUsed = filter_var($newStatementUsed, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+        if($newStatementUsed==null){
+            throw new \InvalidArgumentException("Statement Class Exception: Statement Used is invalid");
+        }
+        $this->statementUsed = $newStatementUsed;
+    }
+
+    /**
+     * Accessor for statementPlayerId, Not Null
+     * Primary Key
+     *
+     * @return UuidInterface
+     */
+    public function getStatementPlayerId(): UuidInterface
+    {
+        return ($this->statementPlayerId);
+    }
+
+    /**
+     *Mutator Method for statementPlayerId, Not Null
+     *Primary Key
+     *
+     * @param UuidInterface|string $statementPlayerId
+     * @throws \Exception if $statementPlayerId is an invalid argument, out of range, has a type error, or has another exception.
+     */
+    public function setStatementPlayerId(UuidInterface|string $statementPlayerId): void
+    {
+        try {
+            //makes sure uuid is valid
+            $uuid = self::validateUuid($statementPlayerId);
+        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            //throws exception if the uuid is invalid.
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Statement Class Exception: setStatementPlayerId: " . $exception->getMessage(), 0, $exception));
+        }
+        $this->statementPlayerId = $uuid;
+    }
+
 
 //
     /***
@@ -197,7 +251,7 @@ class Statement implements \JsonSerializable {
 //
     /**
      * INSERT
-     * Inserts Message into MySQL
+     * Inserts Statement into MySQL
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException if MySQL errors occur
@@ -206,20 +260,17 @@ class Statement implements \JsonSerializable {
     public function insert(\PDO $pdo): void
     {
         //create query template
-        $query = "INSERT INTO message(messageId, messageContent, messageDate) VALUES(:messageId, :messageContent, :messageDate)";
+        $query = "INSERT INTO statement (statementId, statementText, statementTrue, statementUsed, statementPlayerId) 
+                    VALUES(:statementId, :statementText, :statementTrue, :statementUsed, :statementPlayerId)";
         $statement = $pdo->prepare($query);
         //create parameters for query
-        $parameters = [
-            "messageId" => $this->messageId->getBytes(),
-            "messageContent" => $this->messageContent,
-            "messageDate" => $this->messageDate->format("Y-m-d H:i:s")
-        ];
+        $parameters = $this->getParameters();
         $statement->execute($parameters);
     }
 //
     /**
      * UPDATE
-     * updates Message in MySQL database
+     * updates Statement in MySQL database
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException when MySQL related error occurs
@@ -228,20 +279,17 @@ class Statement implements \JsonSerializable {
     public function update(\PDO $pdo): void
     {
         //create query template
-        $query = "UPDATE message SET messageContent=:messageContent, messageDate=:messageDate WHERE messageId = :messageId";
+        $query = "UPDATE statement SET statementId = :statementId, statementText = :statementText, statementTrue = :statementTrue,
+                      statementUsed = :statementUsed, statementPlayerId = :statementPlayerId WHERE statementId = :statementId";
         $statement = $pdo->prepare($query);
         // set parameters to execute query
-        $parameters = [
-            "messageId" => $this->messageId->getBytes(),
-            "messageContent" => $this->messageContent,
-            "messageDate" => $this->messageDate->format("Y-m-d H:i:s")
-        ];
+        $parameters = $this->getParameters();
         $statement->execute($parameters);
     }
 //
     /**
      * DELETE
-     * deletes Message from MySQL database
+     * deletes Statement from MySQL database
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException when mysql related errors occur
@@ -250,104 +298,136 @@ class Statement implements \JsonSerializable {
     public function delete(\PDO $pdo): void
     {
         //create query template
-        $query = "DELETE FROM message WHERE messageId = :messageId";
+        $query = "DELETE FROM statement WHERE statementId = :statementId";
         $statement = $pdo->prepare($query);
         //set parameters to execute query
-        $parameters = ["messageId" => $this->messageId->getBytes()];
+        $parameters = ["statementId" => $this->statementId->getBytes()];
         $statement->execute($parameters);
+    }
+
+    #[ArrayShape(["statementId" => "string", "statementText" => "string", "statementTrue" => "bool", "statementUsed" => "bool",
+        "statementPlayerId" => "string"])] private function getParameters(): array {
+        return [
+            "statementId" => $this->statementId->getBytes(),
+            "statementText" => $this->statementText,
+            "statementTrue" => $this->statementTrue,
+            "statementUsed" => $this->statementUsed,
+            "statementPlayerId" => $this->statementPlayerId->getBytes()
+        ];
     }
 //
 
     /**
-     * get message by messageId
+     * get statement by statementId
      *
      * @param \PDO $pdo
-     * @param string $messageId
-     * @return Message|null
+     * @param string $statementId
+     * @return Statement|null
      * @throws \PDOException when mysql related errors occur
      * @throws \TypeError when variable doesn't follow typehints
      * @throws \Exception
      */
-    public static function getMessageByMessageId(\PDO $pdo, string $messageId): ?Message
+    public static function getStatementByStatementId(\PDO $pdo, string $statementId): ?Statement
     {
         //trim and filter out invalid input
         try {
-            $messageId = self::validateUuid($messageId);
+            $statementId = self::validateUuid($statementId);
         } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
             $exceptionType = get_class($exception);
-            throw(new $exceptionType("Message Class Exception: getMessageByMessageId: " . $exception->getMessage(), 0, $exception));
+            throw(new $exceptionType("Statement Class Exception: getStatementByStatementId: " . $exception->getMessage(), 0, $exception));
         }
 
         //create query template
-        $query = "SELECT messageId, messageContent, messageDate FROM message WHERE messageId = :messageId";
-        $statement = $pdo->prepare($query);
+        $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
+                    FROM statement WHERE statementId = :statementId";
+        $statementSql = $pdo->prepare($query);
 
         //set parameters to execute
-        $parameters = ["messageId" => $messageId->getBytes()];
-        $statement->execute($parameters);
+        $parameters = ["statementId" => $statementId->getBytes()];
+        $statementSql->execute($parameters);
 
-        //grab message from MySQL
+        //grab statement from MySQL
         try {
-            $message = null;
-            $statement->setFetchMode(\PDO::FETCH_ASSOC);
-            $row = $statement->fetch();
+            $statement = null;
+            $statementSql->setFetchMode(\PDO::FETCH_ASSOC);
+            $row = $statementSql->fetch();
             if ($row !== false) {
-                $message = new Message($row["messageId"], $row["messageContent"], $row["messageDate"]);
+                $statement = new Statement($row["statementId"], $row["statementText"], $row["statementTrue"], $row["statementUsed"], $row["statementPlayerId"]
+                );
             }
         } catch (\Exception $exception) {
             //if row can't be converted rethrow it
             throw(new \PDOException($exception->getMessage(), 0, $exception));
         }
-        return ($message);
+        return ($statement);
 
     }
 
     /**
-     * get all messages ordered by date
+     * get statement by statementGameId
      *
      * @param \PDO $pdo
-     * @return array
+     * @param string $statementPlayerId
+     * @return Statement|null
      * @throws \PDOException when mysql related errors occur
      * @throws \TypeError when variable doesn't follow typehints
+     * @throws \Exception
      */
-    public static function getAllMessages(\PDO $pdo): array
+    public static function getRandomStatementByPlayerId(\PDO $pdo, string $statementPlayerId): array
     {
+        //trim and filter out invalid input
+        try {
+            $statementPlayerId = self::validateUuid($statementPlayerId);
+        } catch (\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Statement Class Exception: getStatementByStatementId: " . $exception->getMessage(), 0, $exception));
+        }
+        //truth or lie
+        $true = rand(1,2)==1;
+
         //create query template
-        $query = "SELECT messageId, messageContent, messageDate FROM message ORDER BY messageDate DESC";
+        $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
+                    FROM statement WHERE statementId = :statementId";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
-        $parameters = [];
+        $parameters = ["statementPlayerId" => $statementPlayerId->getBytes()];
         $statement->execute($parameters);
 
-        //grab message from MySQL
-        $messages = array();
+        //grab statements from MySQL
+        $statements = array();
+
         $statement->setFetchMode(\PDO::FETCH_ASSOC);
         while (($row = $statement->fetch()) !== false) {
             try {
-                $message = new Message($row["messageId"], $row["messageContent"], $row["messageDate"]);
-                $messages[] = $message;
+                $statement = new Statement($row["statementId"], $row["statementGameId"], $row["statementName"], $row["statementTeamNumber"],
+                    $row["statementPlayed"], $row["statementLastModified"]);
+                $statements[] = $statement;
             } catch (\Exception $exception) {
                 //if row can't be converted rethrow it
                 throw(new \PDOException($exception->getMessage(), 0, $exception));
             }
         }
-        return ($messages);
+        return ($statements);
+
     }
 
     /**
-     * converts DateTime to string to serialize
+     * converts DateTimes and guids to string to serialize
      *
      * @return array converts DateTime to strings
      */
     public function jsonSerialize(): array
     {
         $fields = get_object_vars($this);
-        if($this->messageId !== null) {
-            $fields["messageId"] = $this->messageId->toString();
+        if($this->statementId !== null) {
+            $fields["statementId"] = $this->statementId->toString();
         }
-        if ($this->messageDate !== null) {
-            $fields["messageDate"] = $this->messageDate->format("Y-m-d H:i:s");
+        if($this->statementGameId !== null) {
+            $fields["statementGameId"] = $this->statementGameId->toString();
+        }
+        if ($this->statementLastModified !== null) {
+            $fields["statementLastModified"] = $this->statementLastModified->format("Y-m-d H:i:s");
         }
         return ($fields);
     }
