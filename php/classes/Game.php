@@ -170,7 +170,7 @@ class Game implements \JsonSerializable {
         $newGameCode = filter_var($newGameCode, FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
 
         //checks if string length is appropriate
-        if (strlen($newGameCode) > 60000) {
+        if (strlen($newGameCode) > 6) {
             throw (new \RangeException("Game Class Exception: GameCode is too long"));
         }
         $this->gameCode = $newGameCode;
@@ -384,7 +384,7 @@ class Game implements \JsonSerializable {
     public function insert(\PDO $pdo): void
     {
         //create query template
-        $query = "INSERT INTO game(gameId, gameCode, gameCreated, gameActivity, gameCurrentPlayerId, gameCurrentStatementId, 
+        $query = "INSERT INTO game (gameId, gameCode, gameCreated, gameActivity, gameCurrentPlayerId, gameCurrentStatementId, 
                  gameTeamOneScore, gameTeamTwoScore) VALUES(:gameId, :gameCode, :gameCreated, :gameActivity, :gameCurrentPlayerId, 
                                                             :gameCurrentStatementId, :gameTeamOneScore, :gameTeamTwoScore)";
         $statement = $pdo->prepare($query);
