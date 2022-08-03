@@ -22,9 +22,9 @@ class Game implements \JsonSerializable {
 
     /**
      * id for game; Primary key - Not null, uuid
-     * @var UuidInterface $gameId
+     * @var UuidInterface|string $gameId
      */
-    private UuidInterface $gameId;
+    private UuidInterface|string $gameId;
 
     /**
      * Code for this game used to join active games - not null, string
@@ -45,16 +45,16 @@ class Game implements \JsonSerializable {
     private \DateTime|string $gameActivity;
 
     /**
-     * player whose turn it is- nullable, Player
-     * @var ?Player $gameCurrentPlayer
+     * playerId for player whose turn it is- nullable, UUID
+     * @var UuidInterface|string|null $gameCurrentPlayerId
      */
-    private ?Player $gameCurrentPlayer;
+    private UuidInterface|string|null $gameCurrentPlayerId;
 
     /**
      * current statement - nullable, Statement
-     * @var ?Statement $gameCurrentStatement
+     * @var UuidInterface|string|null $gameCurrentStatementId
      */
-    private ?Statement $gameCurrentStatement;
+    private UuidInterface|string|null $gameCurrentStatementId;
 
     /**
      * team one score - nullable, int
@@ -84,21 +84,21 @@ class Game implements \JsonSerializable {
      * @param string $gameCode
      * @param \DateTime|string|null $gameCreated
      * @param \DateTime|string|null $gameActivity
-     * @param string $gameCurrentPlayer
-     * @param string $gameCurrentStatement
+     * @param string $gameCurrentPlayerId
+     * @param string $gameCurrentStatementId
      * @param int $gameTeamOneScore
      * @param int $gameTeamTwoScore
      * @throws \InvalidArgumentException | \RangeException | \TypeError | \Exception if setters do not work
      */
-    public function __construct(string $gameId, string $gameCode, string|\DateTime|null $gameCreated, string|\DateTime|null $gameActivity, string $gameCurrentPlayer, string $gameCurrentStatement, int $gameTeamOneScore, int $gameTeamTwoScore)
+    public function __construct(string $gameId, string $gameCode, string|\DateTime|null $gameCreated, string|\DateTime|null $gameActivity, string $gameCurrentPlayerId, string $gameCurrentStatementId, int $gameTeamOneScore, int $gameTeamTwoScore)
     {
         try {
             $this->setGameId($gameId);
             $this->setGameCode($gameCode);
             $this->setGameCreated($gameCreated);
             $this->setGameActivity($gameActivity);
-            $this->setGameCurrentPlayer($gameCurrentPlayer);
-            $this->setGameCurrentStatement($gameCurrentStatement);
+            $this->setGameCurrentPlayerId($gameCurrentPlayerId);
+            $this->setGameCurrentStatementId($gameCurrentStatementId);
             $this->setGameTeamOneScore($gameTeamOneScore);
             $this->setGameTeamTwoScore($gameTeamTwoScore);
         } catch (\InvalidArgumentException | \RangeException | \TypeError | \Exception $exception) {
@@ -243,61 +243,67 @@ class Game implements \JsonSerializable {
     /**
      * Accessor Method for gameCurrentPlayer
      *
-     * @return Player
+     * @return UuidInterface|null
      */
-    public function getGameCurrentPlayer(): Player
+    public function getGameCurrentPlayer(): UuidInterface|null
     {
-        return ($this->gameCurrentPlayer);
+        return ($this->gameCurrentPlayerId);
     }
 
     /**
      * Mutator Method for gameCurrentPlayer
      *
-     * @param string|UuidInterface $newGameCurrentPlayer
+     * @param string|UuidInterface|null $newGameCurrentPlayerId
      * @throws \Exception if $newGameCurrentPlayer is an invalid argument, out of range, has a type error, or has another exception.
      */
-    public function setGameCurrentPlayer(string|UuidInterface $newGameCurrentPlayer): void
+    public function setGameCurrentPlayerId(string|UuidInterface|null $newGameCurrentPlayerId): void
     {
-
-        try {
-            //makes sure uuid is valid
-            $uuid = self::validateUuid($newGameCurrentPlayer);
-        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
-            //throws exception if the uuid is invalid.
-            $exceptionType = get_class($exception);
-            throw(new $exceptionType("Game Class Exception: setGameId: " . $exception->getMessage(), 0, $exception));
+        if($newGameCurrentPlayerId===null){
+            $this->gameCurrentPlayerId = null;
+        } else {
+            try {
+                //makes sure uuid is valid
+                $uuid = self::validateUuid($newGameCurrentPlayerId);
+            } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+                //throws exception if the uuid is invalid.
+                $exceptionType = get_class($exception);
+                throw(new $exceptionType("Game Class Exception: setGameCurrentPlayerId: " . $exception->getMessage(), 0, $exception));
+            }
+            $this->gameCurrentPlayerId = $uuid;
         }
-        $this->gameCurrentPlayer = Player::getPlayerByPlayerId($uuid->toString());
     }
 
     /**
      * Accessor Method for gameCurrentStatement
      *
-     * @return Statement
+     * @return UuidInterface|null
      */
-    public function getGameCurrentStatement(): Statement
+    public function getGameCurrentStatementId(): UuidInterface|null
     {
-        return ($this->gameCurrentStatement);
+        return ($this->gameCurrentStatementId);
     }
 
     /**
-     * Mutator Method for gameCurrentStatement
+     * Mutator Method for gameCurrentStatementId
      *
-     * @param string|UuidInterface $newGameCurrentStatement
-     * @throws \Exception if $newGameCurrentStatement is an invalid argument, out of range, has a type error, or has another exception.
+     * @param string|UuidInterface|null $newGameCurrentStatementId
+     * @throws \Exception if $newGameCurrentStatementId is an invalid argument, out of range, has a type error, or has another exception.
      */
-    public function setGameCurrentStatement(string|UuidInterface $newGameCurrentStatement): void
+    public function setGameCurrentStatementId(string|UuidInterface|null $newGameCurrentStatementId): void
     {
-
-        try {
-            //makes sure uuid is valid
-            $uuid = self::validateUuid($newGameCurrentStatement);
-        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
-            //throws exception if the uuid is invalid.
-            $exceptionType = get_class($exception);
-            throw(new $exceptionType("Game Class Exception: setGameId: " . $exception->getMessage(), 0, $exception));
+        if($newGameCurrentStatementId===null){
+            $this->gameCurrentStatementId = null;
+        } else {
+            try {
+                //makes sure uuid is valid
+                $uuid = self::validateUuid($newGameCurrentStatementId);
+            } catch (\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+                //throws exception if the uuid is invalid.
+                $exceptionType = get_class($exception);
+                throw(new $exceptionType("Game Class Exception: setGameCurrentStatementId: " . $exception->getMessage(), 0, $exception));
+            }
+            $this->gameCurrentStatementId = $uuid;
         }
-        $this->gameCurrentStatement = Statement::getStatementByStatementId($uuid->toString());
     }
 
     /**

@@ -364,51 +364,82 @@ class Statement implements \JsonSerializable {
     }
 
     /**
-     * get statement by statementGameId
-     *
      * @param \PDO $pdo
-     * @param string $statementPlayerId
+     * @param string $playerId
+     * @param string $gameId
+     * @param int $playerTeam
      * @return Statement|null
-     * @throws \PDOException when mysql related errors occur
-     * @throws \TypeError when variable doesn't follow typehints
      * @throws \Exception
      */
-    public static function getRandomStatementByPlayerId(\PDO $pdo, string $statementPlayerId): array
+    public static function getNextStatement(\PDO $pdo, string $playerId, string $gameId, int $playerTeam): ?Statement
     {
         //trim and filter out invalid input
         try {
-            $statementPlayerId = self::validateUuid($statementPlayerId);
+            $playerId = self::validateUuid($playerId);
         } catch (\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
             $exceptionType = get_class($exception);
-            throw(new $exceptionType("Statement Class Exception: getStatementByStatementId: " . $exception->getMessage(), 0, $exception));
+            throw(new $exceptionType("Statement Class Exception: getNextStatement: " . $exception->getMessage(), 0, $exception));
         }
+        try {
+            $gameId = self::validateUuid($gameId);
+        } catch (\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Statement Class Exception: getNextStatement: " . $exception->getMessage(), 0, $exception));
+        }
+
         //truth or lie
         $true = rand(1,2)==1;
 
         //create query template
-        $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
-                    FROM statement WHERE statementId = :statementId";
-        $statement = $pdo->prepare($query);
+        if($true){
+            $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
+                    FROM statement WHERE statementPlayerId = :playerId AND statementTrue = TRUE AND statementUsed = FALSE";
+            $getStatementStatement = $pdo->prepare($query);
+            //set parameters to execute
+            $parameters = ["playerId" => $playerId->getBytes()];
+            $getStatementStatement->execute($parameters);
+        } else {
+            $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
+                    FROM statement LEFT JOIN player p on p.playerId = statement.statementId WHERE statementPlayerId 
+                    IS NOT :playerId AND statementTrue = FALSE AND statementUsed = FALSE AND p.playerTeamNumber = :playerTeam
+                    AND p.playerGameId = :gameId";
+            $getStatementStatement = $pdo->prepare($query);
+            //set parameters to execute
+            $parameters = [
+                "playerId" => $playerId->getBytes(),
+                "playerTeam"=> $playerTeam,
+                "gameId"=> $gameId->getBytes()
+                ];
+            $getStatementStatement->execute($parameters);
+        }
 
-        //set parameters to execute
-        $parameters = ["statementPlayerId" => $statementPlayerId->getBytes()];
-        $statement->execute($parameters);
+        //grab statement from MySQL
+        $statement = null;
 
-        //grab statements from MySQL
-        $statements = array();
-
-        $statement->setFetchMode(\PDO::FETCH_ASSOC);
-        while (($row = $statement->fetch()) !== false) {
+        $getStatementStatement->setFetchMode(\PDO::FETCH_ASSOC);
+        while (($row = $getStatementStatement->fetch()) !== false) {
             try {
-                $statement = new Statement($row["statementId"], $row["statementGameId"], $row["statementName"], $row["statementTeamNumber"],
-                    $row["statementPlayed"], $row["statementLastModified"]);
-                $statements[] = $statement;
+                $statement = new Statement($row["statementId"], $row["statementText"], $row["statementTrue"], $row["statementUsed"],
+                    $row["statementPlayerId"]);
             } catch (\Exception $exception) {
                 //if row can't be converted rethrow it
                 throw(new \PDOException($exception->getMessage(), 0, $exception));
             }
         }
-        return ($statements);
+
+        $updatePlayerQuery = "UPDATE player SET playerPlayed = TRUE WHERE playerId = :playerId";
+        $updatePlayerStatement = $pdo->prepare($updatePlayerQuery);
+        // set parameters to execute query
+        $parameters = ["playerId"=>$statementPlayerId->getBytes()];
+        $updatePlayerStatement->execute($parameters);
+
+        $updateStatementQuery = "UPDATE statement SET statementUsed = TRUE WHERE statementId = :statementId";
+        $updateStatementStatement = $pdo->prepare($updateStatementQuery);
+        // set parameters to execute query
+        $parameters = ["statementId"=>$statement->getStatementId()->getBytes()];
+        $updateStatementStatement->execute($parameters);
+
+        return ($statement);
 
     }
 

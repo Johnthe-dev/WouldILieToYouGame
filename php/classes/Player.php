@@ -407,7 +407,7 @@ class Player implements \JsonSerializable {
      *
      * @param \PDO $pdo
      * @param string $playerGameId
-     * @return Player|null
+     * @return array
      * @throws \PDOException when mysql related errors occur
      * @throws \TypeError when variable doesn't follow typehints
      * @throws \Exception
@@ -446,6 +446,60 @@ class Player implements \JsonSerializable {
             }
         }
         return ($players);
+
+    }
+
+    /**
+     * get player by playerId
+     *
+     * @param \PDO $pdo
+     * @param string $gameId
+     * @return Player|null
+     * @throws \PDOException when mysql related errors occur
+     * @throws \TypeError when variable doesn't follow typehints
+     * @throws \Exception
+     */
+    public static function getRandomPlayerByGameId(\PDO $pdo, string $gameId): ?Player
+    {
+        //trim and filter out invalid input
+        try {
+            $gameId = self::validateUuid($gameId);
+        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Player Class Exception: getRandomPlayerByGameId: " . $exception->getMessage(), 0, $exception));
+        }
+
+        //create query template
+        $query = "SELECT playerId, playerGameId, playerName, playerTeamNumber, playerPlayed, playerLastModified
+                    FROM player WHERE playerGameId = :gameId AND playerPlayed = FALSE ORDER BY playerId";
+        $statement = $pdo->prepare($query);
+
+        //set parameters to execute
+        $parameters = ["gameId" => $gameId->getBytes()];
+        $statement->execute($parameters);
+
+        //grab player from MySQL
+        try {
+            $player = null;
+            $statement->setFetchMode(\PDO::FETCH_ASSOC);
+            $row = $statement->fetch();
+            if ($row !== false) {
+                $player = new Player($row["playerId"], $row["playerGameId"], $row["playerName"], $row["playerTeamNumber"],
+                    $row["playerPlayed"], $row["playerLastModified"]);
+            }
+        } catch (\Exception $exception) {
+            //if row can't be converted rethrow it
+            throw(new \PDOException($exception->getMessage(), 0, $exception));
+        }
+        if($player == null){
+            $query = "UPDATE player SET playerPlayed = FALSE WHERE playerGameId = :gameId
+ ";
+            $statement = $pdo->prepare($query);
+            // set parameters to execute query
+            $statement->execute($parameters);
+            $player = PlayergetRandomPlayerByGameId($pdo, $gameId->toString());
+        }
+        return ($player);
 
     }
 
