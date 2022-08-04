@@ -368,10 +368,10 @@ class Statement implements \JsonSerializable {
      * @param string $playerId
      * @param string $gameId
      * @param int $playerTeam
-     * @return Statement|null
+     * @return Statement
      * @throws \Exception
      */
-    public static function getNextStatement(\PDO $pdo, string $playerId, string $gameId, int $playerTeam): ?Statement
+    public static function getNextStatement(\PDO $pdo, string $playerId, string $gameId, int $playerTeam): Statement
     {
         //trim and filter out invalid input
         try {
@@ -393,16 +393,15 @@ class Statement implements \JsonSerializable {
         //create query template
         if($true){
             $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
-                    FROM statement WHERE statementPlayerId = :playerId AND statementTrue = TRUE AND statementUsed = FALSE";
+                    FROM statement WHERE statementPlayerId = :playerId AND statementTrue = TRUE AND statementUsed = FALSE ORDER BY statementId LIMIT 1";
             $getStatementStatement = $pdo->prepare($query);
             //set parameters to execute
             $parameters = ["playerId" => $playerId->getBytes()];
-            $getStatementStatement->execute($parameters);
         } else {
             $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
                     FROM statement LEFT JOIN player p on p.playerId = statement.statementId WHERE statementPlayerId 
                     IS NOT :playerId AND statementTrue = FALSE AND statementUsed = FALSE AND p.playerTeamNumber = :playerTeam
-                    AND p.playerGameId = :gameId";
+                    AND p.playerGameId = :gameId ORDER BY statementId LIMIT 1";
             $getStatementStatement = $pdo->prepare($query);
             //set parameters to execute
             $parameters = [
@@ -410,8 +409,8 @@ class Statement implements \JsonSerializable {
                 "playerTeam"=> $playerTeam,
                 "gameId"=> $gameId->getBytes()
                 ];
-            $getStatementStatement->execute($parameters);
         }
+        $getStatementStatement->execute($parameters);
 
         //grab statement from MySQL
         $statement = null;
@@ -426,11 +425,20 @@ class Statement implements \JsonSerializable {
                 throw(new \PDOException($exception->getMessage(), 0, $exception));
             }
         }
+        $updateGameQuery =  "UPDATE game SET gameCurrentPlayerId = :playerId, gameCurrentStatementId = :statementId WHERE gameId = :gameId";
+        $updateGameStatement = $pdo->prepare($updateGameQuery);
+        //set parameters to execute query
+        $parameters = [
+            "playerId"=>$playerId->getBytes(),
+            "statementId"=>$statement->getStatementId()->getBytes(),
+            "gameId"=>$gameId->getBytes()
+            ];
+        $updateGameStatement->execute($parameters);
 
         $updatePlayerQuery = "UPDATE player SET playerPlayed = TRUE WHERE playerId = :playerId";
         $updatePlayerStatement = $pdo->prepare($updatePlayerQuery);
         // set parameters to execute query
-        $parameters = ["playerId"=>$statementPlayerId->getBytes()];
+        $parameters = ["playerId"=>$playerId->getBytes()];
         $updatePlayerStatement->execute($parameters);
 
         $updateStatementQuery = "UPDATE statement SET statementUsed = TRUE WHERE statementId = :statementId";
@@ -454,11 +462,8 @@ class Statement implements \JsonSerializable {
         if($this->statementId !== null) {
             $fields["statementId"] = $this->statementId->toString();
         }
-        if($this->statementGameId !== null) {
-            $fields["statementGameId"] = $this->statementGameId->toString();
-        }
-        if ($this->statementLastModified !== null) {
-            $fields["statementLastModified"] = $this->statementLastModified->format("Y-m-d H:i:s");
+        if($this->statementPlayerId !== null) {
+            $fields["statementPlayerId"] = $this->statementPlayerId->toString();
         }
         return ($fields);
     }

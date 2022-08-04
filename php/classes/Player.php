@@ -459,7 +459,7 @@ class Player implements \JsonSerializable {
      * @throws \TypeError when variable doesn't follow typehints
      * @throws \Exception
      */
-    public static function getRandomPlayerByGameId(\PDO $pdo, string $gameId): ?Player
+    public static function getRandomPlayerByGameId(\PDO $pdo, string $gameId, int $teamNumber): ?Player
     {
         //trim and filter out invalid input
         try {
@@ -471,11 +471,14 @@ class Player implements \JsonSerializable {
 
         //create query template
         $query = "SELECT playerId, playerGameId, playerName, playerTeamNumber, playerPlayed, playerLastModified
-                    FROM player WHERE playerGameId = :gameId AND playerPlayed = FALSE ORDER BY playerId";
+                    FROM player WHERE playerGameId = :gameId AND playerTeamNumber = :teamNumber AND playerPlayed = FALSE ORDER BY playerId LIMIT 1";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
-        $parameters = ["gameId" => $gameId->getBytes()];
+        $parameters = [
+            "gameId" => $gameId->getBytes(),
+            "teamNumber"=>$teamNumber
+        ];
         $statement->execute($parameters);
 
         //grab player from MySQL
@@ -490,14 +493,6 @@ class Player implements \JsonSerializable {
         } catch (\Exception $exception) {
             //if row can't be converted rethrow it
             throw(new \PDOException($exception->getMessage(), 0, $exception));
-        }
-        if($player == null){
-            $query = "UPDATE player SET playerPlayed = FALSE WHERE playerGameId = :gameId
- ";
-            $statement = $pdo->prepare($query);
-            // set parameters to execute query
-            $statement->execute($parameters);
-            $player = PlayergetRandomPlayerByGameId($pdo, $gameId->toString());
         }
         return ($player);
 
