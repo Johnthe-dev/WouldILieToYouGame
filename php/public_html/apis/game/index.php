@@ -46,7 +46,7 @@ try {
         //set xsrf cookie
         setXsrfCookie();
 
-        if(isset($gameId) === true && isset($gameGetCurrentState)===true && $gameGetCurrentState === true) {
+        if(isset($gameId) === true && isset($gameGetCurrentState) === true && $gameGetCurrentState === true) {
             //get game by game id
             $game = Game::getGameByGameId($pdo, $gameId);
             if($game!=null){

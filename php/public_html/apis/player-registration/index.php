@@ -33,11 +33,17 @@ try {
     $method = array_key_exists("HTTP_X_HTTP_METHOD", $_SERVER) ? $_SERVER["HTTP_X_HTTP_METHOD"] : $_SERVER["REQUEST_METHOD"];
 
     if($method === "POST") {
+        if(isset($_SESSION['player'])){
+            unset($_SESSION["player"]);
+        }
         //decode the json and turn it into a php object
         $requestContent = file_get_contents("php://input");
         $requestObject = json_decode($requestContent);
         if(empty($requestObject->name)){
-            throw(new \InvalidArgumentException("Please provide your username", 401));
+            throw(new \InvalidArgumentException("Please provide your player name", 401));
+        }
+        if($requestObject->teamNumber == null){
+            $requestObject->teamNumber = 1;
         }
         //generate player attributes
         $playerId = generateUuidV4();
@@ -58,7 +64,7 @@ try {
 
         //insert player into database
         $player->insert($pdo);
-
+        $_SESSION["player"] = $player;
 
         //update reply
         $reply->message = "You have successfully become a player!";

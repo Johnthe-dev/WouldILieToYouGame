@@ -5,6 +5,7 @@ require_once(dirname(__DIR__) . "/Classes/autoload.php");
 require_once(dirname(__DIR__, 1) . "/vendor/autoload.php");
 
 use JetBrains\PhpStorm\ArrayShape;
+use mysql_xdevapi\Exception;
 use Ramsey\Uuid\UuidInterface;
 
 
@@ -466,10 +467,14 @@ class Game implements \JsonSerializable {
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException when mysql related errors occur
-     * @throws \TypeError when $pdo is not a PDO object
+     * @throws \TypeError|\Exception when $pdo is not a PDO object or another Exception
      */
     public function delete(\PDO $pdo): void
     {
+        $players = Player::getPlayersByGameId($pdo, $this->gameId);
+        foreach($players as $player){
+            $player->delete($pdo);
+        }
         //create query template
         $query = "DELETE FROM game WHERE gameId = :gameId";
         $statement = $pdo->prepare($query);

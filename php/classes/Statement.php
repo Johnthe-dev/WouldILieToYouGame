@@ -5,6 +5,7 @@ require_once(dirname(__DIR__) . "/Classes/autoload.php");
 require_once(dirname(__DIR__, 1) . "/vendor/autoload.php");
 
 use JetBrains\PhpStorm\ArrayShape;
+use mysql_xdevapi\Exception;
 use Ramsey\Uuid\UuidInterface;
 
 
@@ -295,10 +296,14 @@ class Statement implements \JsonSerializable {
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException when mysql related errors occur
-     * @throws \TypeError when $pdo is not a PDO object
+     * @throws \TypeError|\Exception when $pdo is not a PDO object or other Exception
      */
     public function delete(\PDO $pdo): void
     {
+        $votes = Vote::getVotesByStatementId($pdo, $this->statementId);
+        foreach($votes as $vote){
+            $vote->delete($pdo);
+        }
         //create query template
         $query = "DELETE FROM statement WHERE statementId = :statementId";
         $statement = $pdo->prepare($query);
@@ -363,6 +368,54 @@ class Statement implements \JsonSerializable {
         }
         return ($statement);
 
+    }
+
+
+    /**
+     * get statements by playerId
+     *
+     * @param \PDO $pdo
+     * @param string $playerId
+     * @return array
+     * @throws \PDOException when mysql related errors occur
+     * @throws \TypeError when variable doesn't follow typehints
+     * @throws \Exception
+     */
+    public static function getStatementsByPlayerId(\PDO $pdo, string $playerId): array
+    {
+        //trim and filter out invalid input
+        try {
+            $playerId = self::validateUuid($playerId);
+        } catch (\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Statement Class Exception: getStatementsByPlayerId: " . $exception->getMessage(), 0, $exception));
+        }
+
+        //create query template
+        $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
+                    FROM statement WHERE statementPlayerId = :playerId";
+        $statementSql = $pdo->prepare($query);
+
+        //set parameters to execute
+        $parameters = ["playerId" => $playerId->getBytes()];
+        $statementSql->execute($parameters);
+        $statements = array();
+        //grab statement from MySQL
+
+        $statement = null;
+        $statementSql->setFetchMode(\PDO::FETCH_ASSOC);
+        while (($row = $statementSql->fetch()) !== false) {
+            try {
+                $statement = new Statement($row["statementId"], $row["statementText"], $row["statementTrue"],
+                    $row["statementUsed"], $row["statementPlayerId"]);
+                $statements[] = $statement;
+
+            } catch (\Exception $exception) {
+                //if row can't be converted rethrow it
+                throw(new \PDOException($exception->getMessage(), 0, $exception));
+            }
+        }
+        return ($statements);
     }
 
     /**

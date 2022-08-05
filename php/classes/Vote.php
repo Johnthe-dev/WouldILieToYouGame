@@ -326,7 +326,52 @@ class Vote implements \JsonSerializable {
     }
 
     /**
-     * get vote by voteId
+     * get votes by playerId
+     *
+     * @param \PDO $pdo
+     * @param string $playerId
+     * @return array
+     * @throws \PDOException when mysql related errors occur
+     * @throws \TypeError when variable doesn't follow typehints
+     * @throws \Exception
+     */
+    public static function getVotesByPlayerId(\PDO $pdo, string $playerId): array
+    {
+        //trim and filter out invalid input
+        try {
+            $playerId = self::validateUuid($playerId);
+        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Vote Class Exception: getVoteByVoteId: " . $exception->getMessage(), 0, $exception));
+        }
+
+        //create query template
+        $query = "SELECT voteId,  voteStatementId, votePlayerId, voteTrue
+                    FROM vote WHERE voteStatementId = :voteStatementId";
+        $statement = $pdo->prepare($query);
+
+        //set parameters to execute
+        $parameters = ["playerId" => $playerId->getBytes()];
+        $statement->execute($parameters);
+
+        $votes = array();
+        $statement->setFetchMode(\PDO::FETCH_ASSOC);
+        while(($row = $statement->fetch())!==false){
+            try {
+                $vote = new Vote($row["voteId"], $row["voteStatementId"], $row["votePlayerId"], $row["voteTrue"]);
+                $votes[] = $vote;
+            } catch (\Exception $exception) {
+                //if row can't be converted rethrow it
+                throw(new \PDOException($exception->getMessage(), 0, $exception));
+            }
+        }
+
+        return ($votes);
+
+    }
+
+    /**
+     * get votes by statementId
      *
      * @param \PDO $pdo
      * @param string $statementId

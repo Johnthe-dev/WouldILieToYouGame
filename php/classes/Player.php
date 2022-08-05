@@ -335,10 +335,19 @@ class Player implements \JsonSerializable {
      *
      * @param \PDO $pdo PDO connection object
      * @throws \PDOException when mysql related errors occur
-     * @throws \TypeError when $pdo is not a PDO object
+     * @throws \TypeError|\Exception when $pdo is not a PDO object or another exception
      */
     public function delete(\PDO $pdo): void
     {
+        $statements = Statement::getStatementsByPlayerId($pdo, $this->playerId);
+        foreach($statements as $statement){
+            $statement->delete($pdo);
+        }
+        $votes = Vote::getVotesByPlayerId($pdo, $this->playerId);
+        foreach($votes as $vote){
+            $vote->delete($pdo);
+        }
+
         //create query template
         $query = "DELETE FROM player WHERE playerId = :playerId";
         $statement = $pdo->prepare($query);
