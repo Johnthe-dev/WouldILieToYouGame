@@ -87,7 +87,7 @@ try {
             if($game = null) {
                 //create new game and insert it into the database
                 $game = new Game(generateUuidV4(), $requestObject->gameCode, null, null,
-                    null, null, 0, 0, 0);
+                    null, null, 0, 0, 0, 1);
                 $game->insert($pdo);
             }
             $_SESSION["player"]->setPlayerGameId($game->getGameId());
@@ -121,10 +121,14 @@ try {
                 $requestObject["gameCurrentStatementId"]=$game->getGameCurrentStatementId();
             }
 
+            $currentStateChanged = false;
             if (!property_exists($requestObject, "gameCurrentState")) {
                 $requestObject["gameCurrentState"]=$game->getGameCurrentState();
+            } elseif($requestObject["gameCurrentState"]!==$game->getGameCurrentState()){
+                $currentStateChanged = true;
+            } elseif ($game->getGameCurrentState()===5){
+                $currentStateChanged = true;
             }
-
             if (!property_exists($requestObject, "gameTeamOneScore")) {
                 $requestObject["gameTeamOneScore"]=$game->getGameTeamOneScore();
             }
@@ -132,6 +136,8 @@ try {
             if (!property_exists($requestObject, "gameTeamTwoScore")) {
                 $requestObject["gameTeamTwoScore"]=$game->getGameTeamTwoScore();
             }
+            $requestObject["gameRound"]  = $game->getGameRound();
+
             $game = new Game(
                 $gameId,
                 $requestObject["gameCode"],
@@ -141,9 +147,94 @@ try {
                 $requestObject["gameCurrentStatementId"],
                 $requestObject["gameCurrentState"],
                 $requestObject["gameTeamOneScore"],
-                $requestObject["gameTeamTwoScore"]
+                $requestObject["gameTeamTwoScore"],
+                $requestObject["gameRound"]
             );
             $game->update($pdo);
+
+            /**
+             * Game States
+             * 0 Not Yet Started
+             * 1 In Progress
+             * 2 Calculate Score
+             * 3 Getting New Question
+             * 4 New Round
+             * 5 Game Over
+             */
+            if($currentStateChanged) {
+                switch ($game->getGameCurrentState()) {
+                    case 0:
+                    case 1:
+                        break;
+                    case 2:
+                        $currentStatementId = $game->getGameCurrentStatementId()->toString();
+                        if ($currentStatementId === null) {
+                            throw(new \InvalidArgumentException("Cannot vote without active statement"));
+                        }
+                        $currentPlayer = Player::getPlayerByPlayerId($pdo, $game->getGameCurrentPlayerId()->toString());
+                        $correct = Vote::getVoteResultsByStatementId($pdo, $currentStatementId);
+                        if ($correct) {
+                            if ($currentPlayer->getPlayerTeamNumber() == 1) {
+                                $newScore = $game->getGameTeamTwoScore() + 1;
+                                $game->setGameTeamTwoScore($newScore);
+                            } else {
+                                $newScore = $game->getGameTeamOneScore() + 1;
+                                $game->setGameTeamOneScore($newScore);
+                            }
+                        } else {
+                            if ($currentPlayer->getPlayerTeamNumber() == 1) {
+                                $newScore = $game->getGameTeamOneScore() + 1;
+                                $game->setGameTeamOneScore($newScore);
+                            } else {
+                                $newScore = $game->getGameTeamTwoScore() + 1;
+                                $game->setGameTeamTwoScore($newScore);
+                            }
+                        }
+                        $game->setGameCurrentState(1);
+                        $game->update($pdo);
+                        break;
+                    case 3:
+                        if ($game->getGameCurrentStatementId() === null) {
+                            $formerPlayerId = $game->getGameCurrentPlayerId()->toString();
+                            if ($formerPlayerId === null) {
+                                $newCurrentPlayer = Player::getRandomPlayerByGameId($pdo, $gameId, 1);
+                            } else {
+                                $formerPlayer = Player::getPlayerByPlayerId($pdo, $formerPlayerId);
+                                $teamNumber = $formerPlayer->getPlayerTeamNumber() == 1 ? 2 : 1;
+                                $newCurrentPlayer = Player::getRandomPlayerByGameId($pdo, $gameId, $teamNumber);
+                            }
+                            if($newCurrentPlayer === null){
+                                $game->setGameCurrentState(4);
+                            } elseif ($game->getGameCurrentState()!==5){
+                                $newCurrentStatement = Statement::getNextStatement($pdo, $newCurrentPlayer);
+                                $game->setGameCurrentState(1);
+                            }
+                            $game->update($pdo);
+                            $reply->data = $game;
+                        }
+                        break;
+                    case 4:
+                        $newGameRound = $game->getGameRound() +1;
+                        if( $newGameRound <=3){
+                            $allPlayers = Player::getPlayersByGameId($pdo, $gameId);
+                            foreach ($allPlayers as $player){
+                                $player->setPlayerPlayed = false;
+                                $player->update($pdo);
+                            }
+                            $newCurrentPlayer = Player::getRandomPlayerByGameId($pdo, $gameId, 1);
+                            $game->setGameRound($newGameRound);
+                            $newCurrentStatement = Statement::getNextStatement($pdo, $newCurrentPlayer);
+                            $game->setGameCurrentState(1);
+                        } else{
+                            $game->setGameCurrentState(5);
+                        }
+                        $game->update($pdo);
+                        break;
+                    case 5:
+                        $game->delete($pdo);
+                        break;
+                }
+            }
         }
     } elseif ($method === "DELETE" ) {
         $game = Game::getGameByGameId($pdo, $gameId);

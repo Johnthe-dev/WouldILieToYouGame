@@ -420,28 +420,12 @@ class Statement implements \JsonSerializable {
 
     /**
      * @param \PDO $pdo
-     * @param string $playerId
-     * @param string $gameId
-     * @param int $playerTeam
+     * @param Player $player
      * @return Statement
      * @throws \Exception
      */
-    public static function getNextStatement(\PDO $pdo, string $playerId, string $gameId, int $playerTeam): Statement
+    public static function getNextStatement(\PDO $pdo, Player $player): Statement
     {
-        //trim and filter out invalid input
-        try {
-            $playerId = self::validateUuid($playerId);
-        } catch (\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
-            $exceptionType = get_class($exception);
-            throw(new $exceptionType("Statement Class Exception: getNextStatement: " . $exception->getMessage(), 0, $exception));
-        }
-        try {
-            $gameId = self::validateUuid($gameId);
-        } catch (\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
-            $exceptionType = get_class($exception);
-            throw(new $exceptionType("Statement Class Exception: getNextStatement: " . $exception->getMessage(), 0, $exception));
-        }
-
         //truth or lie
         $true = rand(1,2)==1;
 
@@ -451,7 +435,7 @@ class Statement implements \JsonSerializable {
                     FROM statement WHERE statementPlayerId = :playerId AND statementTrue = TRUE AND statementUsed = FALSE ORDER BY statementId LIMIT 1";
             $getStatementStatement = $pdo->prepare($query);
             //set parameters to execute
-            $parameters = ["playerId" => $playerId->getBytes()];
+            $parameters = ["playerId" => $player->getPlayerId()->getBytes()];
         } else {
             $query = "SELECT statementId, statementText, statementTrue, statementUsed, statementPlayerId
                     FROM statement LEFT JOIN player p on p.playerId = statement.statementId WHERE statementPlayerId 
@@ -460,9 +444,9 @@ class Statement implements \JsonSerializable {
             $getStatementStatement = $pdo->prepare($query);
             //set parameters to execute
             $parameters = [
-                "playerId" => $playerId->getBytes(),
-                "playerTeam"=> $playerTeam,
-                "gameId"=> $gameId->getBytes()
+                "playerId" => $player->getPlayerId()->getBytes(),
+                "playerTeam"=> $player->getPlayerTeamNumber(),
+                "gameId"=> $player->getPlayerGameId()->getBytes()
                 ];
         }
         $getStatementStatement->execute($parameters);
@@ -484,17 +468,14 @@ class Statement implements \JsonSerializable {
         $updateGameStatement = $pdo->prepare($updateGameQuery);
         //set parameters to execute query
         $parameters = [
-            "playerId"=>$playerId->getBytes(),
+            "playerId"=>$player->getPlayerId()->getBytes(),
             "statementId"=>$statement->getStatementId()->getBytes(),
-            "gameId"=>$gameId->getBytes()
+            "gameId"=>$player->getPlayerGameId()->getBytes()
             ];
         $updateGameStatement->execute($parameters);
 
-        $updatePlayerQuery = "UPDATE player SET playerPlayed = TRUE WHERE playerId = :playerId";
-        $updatePlayerStatement = $pdo->prepare($updatePlayerQuery);
-        // set parameters to execute query
-        $parameters = ["playerId"=>$playerId->getBytes()];
-        $updatePlayerStatement->execute($parameters);
+        $player->setPlayerPlayed(true);
+        $player->update($pdo);
 
         $updateStatementQuery = "UPDATE statement SET statementUsed = TRUE WHERE statementId = :statementId";
         $updateStatementStatement = $pdo->prepare($updateStatementQuery);

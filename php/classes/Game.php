@@ -70,10 +70,18 @@ class Game implements \JsonSerializable {
     private int $gameTeamOneScore;
 
     /**
-     * team one score - not null, int
-     * @var $gameTeamOneScore int
+     * team two score - not null, int
+     * @var $gameTeamTwoScore int
      */
     private int $gameTeamTwoScore;
+
+    /**
+     * game round - not null, int
+     * @var $gameRound int
+     */
+    private int $gameRound;
+
+
 
 
     /***
@@ -96,9 +104,12 @@ class Game implements \JsonSerializable {
      * @param ?int $gameCurrentState
      * @param ?int $gameTeamOneScore
      * @param ?int $gameTeamTwoScore
+     * @param ?int $gameRound
      * @throws \InvalidArgumentException | \RangeException | \TypeError | \Exception if setters do not work
      */
-    public function __construct(string $gameId, string $gameCode, string|\DateTime|null $gameCreated, string|\DateTime|null $gameActivity, string $gameCurrentPlayerId, string $gameCurrentStatementId, ?int $gameCurrentState, ?int $gameTeamOneScore, ?int $gameTeamTwoScore)
+    public function __construct(string $gameId, string $gameCode, string|\DateTime|null $gameCreated,
+                                string|\DateTime|null $gameActivity, string $gameCurrentPlayerId, string $gameCurrentStatementId,
+                                ?int $gameCurrentState, ?int $gameTeamOneScore, ?int $gameTeamTwoScore, ?int $gameRound)
     {
         try {
             $this->setGameId($gameId);
@@ -110,6 +121,7 @@ class Game implements \JsonSerializable {
             $this->setGameCurrentState($gameCurrentState);
             $this->setGameTeamOneScore($gameTeamOneScore);
             $this->setGameTeamTwoScore($gameTeamTwoScore);
+            $this->setGameRound($gameRound);
         } catch (\InvalidArgumentException | \RangeException | \TypeError | \Exception $exception) {
             $exceptionType = get_class($exception);
             throw(new $exceptionType($exception->getMessage(), 0, $exception));
@@ -409,6 +421,38 @@ class Game implements \JsonSerializable {
         $this->gameTeamTwoScore = $newGameTeamTwoScore;
     }
 
+
+    /**
+     * Accessor Method for gameRound
+     *
+     * @return int
+     */
+    public function getGameRound(): int
+    {
+        return ($this->gameRound);
+    }
+
+    /**
+     * Mutator Method for gameRound
+     *
+     * @param ?int $newGameRound
+     * @throws \Exception if $newGameRound is an invalid argument, out of range, has a type error, or has another exception.
+     */
+    public function setGameRound(?int $newGameRound): void
+    {
+        //filter out invalid input and check if value is empty
+        if(empty($newGameRound)){
+            $newGameRound = 1;
+        }else{
+            $newGameRound = filter_var($newGameRound, FILTER_VALIDATE_INT);
+            if($newGameRound===false){
+                throw new \InvalidArgumentException("Game Class Exception: Team Two Score is invalid");
+            }
+        }
+
+        $this->gameRound = $newGameRound;
+    }
+
 //
     /***
      *      __  __   ______   _______   _    _    ____    _____     _____
@@ -431,8 +475,8 @@ class Game implements \JsonSerializable {
     {
         //create query template
         $query = "INSERT INTO game (gameId, gameCode, gameCreated, gameActivity, gameCurrentPlayerId, gameCurrentStatementId, 
-                 gameCurrentState, gameTeamOneScore, gameTeamTwoScore) VALUES(:gameId, :gameCode, :gameCreated, :gameActivity, 
-                  :gameCurrentPlayerId, :gameCurrentStatementId, :gameCurrentState, :gameTeamOneScore, :gameTeamTwoScore)";
+                 gameCurrentState, gameTeamOneScore, gameTeamTwoScore, gameRound) VALUES(:gameId, :gameCode, :gameCreated, :gameActivity, 
+                  :gameCurrentPlayerId, :gameCurrentStatementId, :gameCurrentState, :gameTeamOneScore, :gameTeamTwoScore, :gameRound)";
         $statement = $pdo->prepare($query);
         //create parameters for query
         $parameters = $this->getParameters();
@@ -453,7 +497,7 @@ class Game implements \JsonSerializable {
         $query = "UPDATE game SET gameCode = :gameCode, gameCreated = :gameCreated, gameActivity = :gameActivity,
                     gameCurrentPlayerId = :gameCurrentPlayerId, gameCurrentStatementId = :gameCurrentStatementId, 
                     gameCurrentState = :gameCurrentState, gameTeamOneScore = :gameTeamOneScore, 
-                    gameTeamTwoScore = :gameTeamTwoScore WHERE gameId = :gameId
+                    gameTeamTwoScore = :gameTeamTwoScore, gameRound = :gameRound WHERE gameId = :gameId
  ";
         $statement = $pdo->prepare($query);
         // set parameters to execute query
@@ -485,7 +529,7 @@ class Game implements \JsonSerializable {
 
     #[ArrayShape(["gameId" => "string", "gameCode" => "string", "gameCreated" => "string", "gameActivity" => "string",
         "gameCurrentPlayerId" => "mixed", "gameCurrentStatementId" => "mixed", "gameCurrentState" => "int",
-        "gameTeamOneScore" => "int", "gameTeamTwoScore" => "int"])] private function getParameters(): array {
+        "gameTeamOneScore" => "int", "gameTeamTwoScore" => "int", "gameRound"=>"int"])] private function getParameters(): array {
 
         $currentPlayerId = $this->gameCurrentPlayerId === null ? null : $this->gameCurrentPlayerId->getBytes();
         $currentStatementId = $this->gameCurrentStatementId === null ? null : $this->gameCurrentStatementId->getBytes();
@@ -498,7 +542,8 @@ class Game implements \JsonSerializable {
             "gameCurrentStatementId" => $currentStatementId,
             "gameCurrentState" => $this->gameCurrentState,
             "gameTeamOneScore" => $this->gameTeamOneScore,
-            "gameTeamTwoScore" => $this->gameTeamTwoScore
+            "gameTeamTwoScore" => $this->gameTeamTwoScore,
+            "gameRound" => $this->gameRound
         ];
     }
 //
@@ -525,7 +570,7 @@ class Game implements \JsonSerializable {
 
         //create query template
         $query = "SELECT gameId, gameCode, gameCreated, gameActivity, gameCurrentPlayerId, gameCurrentStatementId, 
-                 gameCurrentState, gameTeamOneScore, gameTeamTwoScore FROM game WHERE gameId = :gameId";
+                 gameCurrentState, gameTeamOneScore, gameTeamTwoScore, gameRound FROM game WHERE gameId = :gameId";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
@@ -540,7 +585,7 @@ class Game implements \JsonSerializable {
             if ($row !== false) {
                 $game = new Game($row["gameId"], $row["gameCode"], $row["gameCreated"], $row["gameActivity"],
                     $row["gameCurrentPlayerId"], $row["gameCurrentStatementId"], $row["gameCurrentState"],
-                    $row["gameTeamOneScore"], $row["gameTeamTwoScore"]);
+                    $row["gameTeamOneScore"], $row["gameTeamTwoScore"], $row["gameRound"]);
             }
         } catch (\Exception $exception) {
             //if row can't be converted rethrow it
@@ -572,7 +617,7 @@ class Game implements \JsonSerializable {
 
         //create query template
         $query = "SELECT gameId, gameCode, gameCreated, gameActivity, gameCurrentPlayerId, gameCurrentStatementId, 
-                 gameCurrentState, gameTeamOneScore, gameTeamTwoScore FROM game WHERE gameCode = :gameCode";
+                 gameCurrentState, gameTeamOneScore, gameTeamTwoScore, gameRound FROM game WHERE gameCode = :gameCode";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
@@ -587,7 +632,7 @@ class Game implements \JsonSerializable {
             if ($row !== false) {
                 $game = new Game($row["gameId"], $row["gameCode"], $row["gameCreated"], $row["gameActivity"],
                     $row["gameCurrentPlayerId"], $row["gameCurrentStatementId"], $row["gameCurrentState"],
-                    $row["gameTeamOneScore"], $row["gameTeamTwoScore"]);
+                    $row["gameTeamOneScore"], $row["gameTeamTwoScore"], $row["gameRound"]);
             }
         } catch (\Exception $exception) {
             //if row can't be converted rethrow it

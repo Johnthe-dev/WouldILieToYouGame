@@ -14,6 +14,7 @@ create table Game
     gameCurrentState TINYINT not null,
     gameTeamOneScore TINYINT not null,
     gameTeamTwoScore TINYINT not null,
+    gameRound TINYINT NOT NULL DEFAULT 1,
     primary key (gameId)
 );
 
