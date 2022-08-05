@@ -61,10 +61,6 @@ function validateJwtHeader () : \Lcobucci\JWT\Token   {
     if(array_key_exists("X-JWT-TOKEN", $headers) === false) {
         throw new InvalidArgumentException("invalid JWT token", 418);
     }
-    //enforce the session has needed content
-    if(empty( $_SESSION["signature"]) === true ) {
-        throw new InvalidArgumentException("not logged in", 401);
-    }
     //grab the string representation of the Token from the header then parse it into an object
     $headerJwt = $headers["X-JWT-TOKEN"];
     $headerJwt = (new Parser())->parse($headerJwt);

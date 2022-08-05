@@ -27,10 +27,10 @@ class Player implements \JsonSerializable {
     private UuidInterface $playerId;
 
     /**
-     * Uuid for the Game this player is in - not null, uuid
-     * @var UuidInterface $playerGameId
+     * Uuid for the Game this player is in - null, uuid
+     * @var ?UuidInterface $playerGameId
      */
-    private UuidInterface $playerGameId;
+    private ?UuidInterface $playerGameId;
 
     /**
      * player name - not null, string
@@ -68,14 +68,14 @@ class Player implements \JsonSerializable {
     /**
      * Player constructor.
      * @param string $playerId
-     * @param string $playerGameId
+     * @param ?string $playerGameId
      * @param string $playerName
      * @param int $playerTeamNumber
      * @param bool $playerPlayed
      * @param string|\DateTime|null $playerLastModified
      * @throws \InvalidArgumentException | \RangeException | \TypeError | \Exception if setters do not work
      */
-    public function __construct(string $playerId, string $playerGameId, string $playerName, int $playerTeamNumber, 
+    public function __construct(string $playerId, ?string $playerGameId, string $playerName, int $playerTeamNumber,
                                 bool $playerPlayed, string|\DateTime|null $playerLastModified)
     {
         try {
@@ -146,20 +146,24 @@ class Player implements \JsonSerializable {
      *Mutator Method for playerGameId, Not Null
      *Primary Key
      *
-     * @param UuidInterface|string $playerGameId
+     * @param UuidInterface|string|null $playerGameId
      * @throws \Exception if $playerGameId is an invalid argument, out of range, has a type error, or has another exception.
      */
-    public function setPlayerGameId(UuidInterface|string $playerGameId): void
+    public function setPlayerGameId(UuidInterface|string|null $playerGameId): void
     {
-        try {
-            //makes sure uuid is valid
-            $uuid = self::validateUuid($playerGameId);
-        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
-            //throws exception if the uuid is invalid.
-            $exceptionType = get_class($exception);
-            throw(new $exceptionType("Player Class Exception: setPlayerGameId: " . $exception->getMessage(), 0, $exception));
+        if($playerGameId==null){
+            try {
+                //makes sure uuid is valid
+                $uuid = self::validateUuid($playerGameId);
+            } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+                //throws exception if the uuid is invalid.
+                $exceptionType = get_class($exception);
+                throw(new $exceptionType("Player Class Exception: setPlayerGameId: " . $exception->getMessage(), 0, $exception));
+            }
+            $this->playerGameId = $uuid;
+        } else{
+            $this->playerGameId = null;
         }
-        $this->playerGameId = $uuid;
     }
 
     /**
@@ -345,9 +349,13 @@ class Player implements \JsonSerializable {
 
     #[ArrayShape(["playerId" => "string", "playerGameId" => "string", "playerName" => "string", "playerTeamNumber" => "int",
         "playerPlayed" => "bool", "playerLastModified" => "string"])] private function getParameters(): array {
+        $playerGameId = null;
+        if ($this->playerGameId!=null){
+            $playerGameId = $this->playerGameId->getBytes();
+        }
         return [
             "playerId" => $this->playerId->getBytes(),
-            "playerGameId" => $this->playerGameId->getBytes(),
+            "playerGameId" => $playerGameId,
             "playerName" => $this->playerName,
             "playerTeamNumber" => $this->playerTeamNumber,
             "playerPlayed" => $this->playerPlayed,

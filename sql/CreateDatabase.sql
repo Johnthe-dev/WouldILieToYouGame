@@ -11,15 +11,16 @@ create table Game
     gameActivity DATETIME(6) not null,
     gameCurrentPlayerId BINARY(16) null,
     gameCurrentStatementId BINARY(16) null,
-    gameTeamOneScore TINYINT,
-    gameTeamTwoScore TINYINT,
+    gameCurrentState TINYINT not null,
+    gameTeamOneScore TINYINT not null,
+    gameTeamTwoScore TINYINT not null,
     primary key (gameId)
 );
 
 create table Player
 (
     playerId BINARY(16) not null,
-    playerGameId BINARY(16) not null,
+    playerGameId BINARY(16) null,
     playerName VARCHAR(32) not null,
     playerTeamNumber TINYINT not null,
     playerPlayed BOOLEAN not null default false,

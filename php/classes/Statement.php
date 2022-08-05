@@ -34,7 +34,7 @@ class Statement implements \JsonSerializable {
 
     /**
      * whether the statement is true - not null, boolean
-     * @var bool $statementTrue
+     * @var ?bool $statementTrue
      */
     private bool $statementTrue;
 
@@ -64,12 +64,12 @@ class Statement implements \JsonSerializable {
      * Statement constructor.
      * @param string $statementId
      * @param string $statementText
-     * @param bool $statementTrue
+     * @param ?bool $statementTrue
      * @param bool $statementUsed
      * @param string $statementPlayerId
      * @throws \InvalidArgumentException | \RangeException | \TypeError | \Exception if setters do not work
      */
-    public function __construct(string $statementId, string $statementText, bool $statementTrue, bool $statementUsed, string $statementPlayerId)
+    public function __construct(string $statementId, string $statementText, ?bool $statementTrue, bool $statementUsed, string $statementPlayerId)
     {
         try {
             $this->setStatementId($statementId);
@@ -173,12 +173,14 @@ class Statement implements \JsonSerializable {
      */
     public function setStatementTrue(bool $newStatementTrue): void
     {
-        //filter out invalid input
-        $newStatementTrue = filter_var($newStatementTrue, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
-        if($newStatementTrue==null){
-            throw new \InvalidArgumentException("Statement Class Exception: Statement True is invalid");
+        if($newStatementTrue!==null){
+            //filter out invalid input
+            $newStatementTrue = filter_var($newStatementTrue, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            if($newStatementTrue==null){
+                throw new \InvalidArgumentException("Statement Class Exception: Statement True is invalid");
+            }
         }
-        $this->statementTrue = $newStatementTrue;
+            $this -> statementTrue =  $newStatementTrue;
     }
 
     /**

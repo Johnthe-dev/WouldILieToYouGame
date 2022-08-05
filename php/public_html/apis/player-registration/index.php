@@ -36,10 +36,12 @@ try {
         //decode the json and turn it into a php object
         $requestContent = file_get_contents("php://input");
         $requestObject = json_decode($requestContent);
-
+        if(empty($requestObject->name)){
+            throw(new \InvalidArgumentException("Please provide your username", 401));
+        }
         //generate player attributes
         $playerId = generateUuidV4();
-        $playerGameId = $requestObject->gameId;
+        $playerGameId = null;
         $playerName = $requestObject->name;
         $playerTeamNumber = $requestObject->teamNumber;
         $playerPlayed = false;
@@ -56,6 +58,7 @@ try {
 
         //insert player into database
         $player->insert($pdo);
+
 
         //update reply
         $reply->message = "You have successfully become a player!";

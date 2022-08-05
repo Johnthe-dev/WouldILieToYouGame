@@ -7,7 +7,7 @@ require_once dirname(__DIR__, 3) . "/lib/xsrf.php";
 require_once dirname(__DIR__, 3) . "/lib/jwt.php";
 require_once dirname(__DIR__, 3) . "/lib/uuid.php";
 
-use JOHNTHEDEV\Game\Game;
+use JOHNTHEDEV\Game\{Game, Statement, Player, Vote};
 
 /**
  * api for getting the game state, creating a game, etc.
@@ -35,6 +35,7 @@ try {
 
     //sanitize input
     $gameId = filter_input(INPUT_GET, "gameId", FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
+    $gameGetCurrentState = filter_input(INPUT_GET, "getCurrentState", FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
 
     //check if resourceId is empty and method is delete or put
     if(($method === "DELETE" || $method === "PUT") && (empty($gameId) === true)) {
@@ -45,9 +46,22 @@ try {
         //set xsrf cookie
         setXsrfCookie();
 
-        if(isset($gameId) === true) {
-            //get resource by resource id
-            $reply->data = Game::getGameByGameId($pdo, $gameId);
+        if(isset($gameId) === true && isset($gameGetCurrentState)===true && $gameGetCurrentState === true) {
+            //get game by game id
+            $game = Game::getGameByGameId($pdo, $gameId);
+            if($game!=null){
+                $currentPlayer = Player::getPlayerByPlayerId($pdo, $game->getGameCurrentPlayerId());
+                $statement = Statement::getStatementByStatementId($pdo, $game->getGameCurrentStatementId());
+                $statementToSend = new Statement($statement->getStatementId(), $statement->getStatementText(),null,$statement->getStatementUsed(), $statement->getStatementPlayerId());
+                $votes = Vote::getVotesByStatementId($pdo, $statement->getStatementId());
+                $reply->data = (object) array('Game'=>$game, "CurrentStatement"=>$statementToSend, 'CurrentVotes'=>$votes, 'CurrentPlayer'=>$currentPlayer);
+            } else{
+                $reply->data = null;
+            }
+
+        } elseif (isset($gameId) === true){
+            $game = Game::getGameByGameId($pdo, $gameId);
+            $reply->data = $game;
         }
 
     } elseif($method === "POST" || $method === "PUT") {
@@ -72,10 +86,11 @@ try {
             }
 
             //create new game and insert it into the database
-            $game = new Game(generateUuidV4(), $requestObject->gameCode, null, null,
-                null, null, 0,0);
+            $game = new Game(generateUuidV4(), $requestObject->gameCode,null,null,
+                null,null,0,0,0);
             $game->insert($pdo);
             //update reply
+            $reply->data = $game;
             $reply->message = "A new game entry has been created.";
         }
     } else {
