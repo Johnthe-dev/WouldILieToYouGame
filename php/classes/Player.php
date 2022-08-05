@@ -441,7 +441,7 @@ class Player implements \JsonSerializable {
 
         //create query template
         $query = "SELECT playerId, playerGameId, playerName, playerTeamNumber, playerPlayed, playerLastModified
-                    FROM player WHERE playerGameId = :playerGameId";
+                    FROM player WHERE playerGameId = :playerGameId ORDER BY playerLastModified";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
@@ -514,6 +514,56 @@ class Player implements \JsonSerializable {
         return ($player);
 
     }
+
+    /**
+     * get player by playerId
+     *
+     * @param \PDO $pdo
+     * @param Player $player
+     * @return Player
+     * @throws \PDOException when mysql related errors occur
+     * @throws \TypeError when variable doesn't follow typehints
+     * @throws \Exception
+     */
+    public static function assignPlayerToTeam(\PDO $pdo, Player $player): Player
+    {
+        $gameId = $player->getPlayerGameId();
+        if($gameId == null){
+
+        }
+        //create query template
+        $getTeamQuery = "SELECT playerTeamNumber as teamCount from player WHERE playerGameId = :gameId GROUP BY playerTeamNumber ORDER BY COUNT(playerTeamNumber)";
+        $statement = $pdo->prepare($getTeamQuery);
+
+        //set parameters to execute
+        $parameters = [
+            "gameId" => $gameId->getBytes()
+        ];
+        $statement->execute($parameters);
+
+        //grab player from MySQL
+        try {
+            $teamNumber = null;
+            $statement->setFetchMode(\PDO::FETCH_ASSOC);
+            $count = 0;
+            while (($row = $statement->fetch()) !== false) {
+                $teamNumber = $row["playerTeamNumber"];
+                $count ++;
+            }
+            if($count === 0){
+                $teamNumber = 1;
+            } elseif ($count===1){
+                $teamNumber = 2;
+            }
+        } catch (\Exception $exception) {
+            //if row can't be converted rethrow it
+            throw(new \PDOException($exception->getMessage(), 0, $exception));
+        }
+        $player->setPlayerTeamNumber($teamNumber);
+        $player->update($pdo);
+        return ($player);
+    }
+
 
     /**
      * converts DateTimes and guids to string to serialize

@@ -42,14 +42,11 @@ try {
         if(empty($requestObject->name)){
             throw(new \InvalidArgumentException("Please provide your player name", 401));
         }
-        if($requestObject->teamNumber == null){
-            $requestObject->teamNumber = 1;
-        }
         //generate player attributes
         $playerId = generateUuidV4();
         $playerGameId = null;
         $playerName = $requestObject->name;
-        $playerTeamNumber = $requestObject->teamNumber;
+        $playerTeamNumber = isset($requestObject->teamNumber)===true?$requestObject->teamNumber:null;
         $playerPlayed = false;
         $playerLastModified = null;
 

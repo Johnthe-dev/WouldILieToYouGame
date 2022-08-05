@@ -551,6 +551,53 @@ class Game implements \JsonSerializable {
     }
 
     /**
+     * get game by gameCode
+     *
+     * @param \PDO $pdo
+     * @param string $gameCode
+     * @return Game|null
+     * @throws \PDOException when mysql related errors occur
+     * @throws \TypeError when variable doesn't follow typehints
+     * @throws \Exception
+     */
+    public static function getGameByGameCode(\PDO $pdo, string $gameCode): ?Game
+    {
+        $gameCode = trim($gameCode);
+        $gameCode = filter_var($gameCode, FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
+
+        //checks if string length is appropriate
+        if (strlen($gameCode) > 6) {
+            throw (new \RangeException("Game Class Exception: GameCode is too long"));
+        }
+
+        //create query template
+        $query = "SELECT gameId, gameCode, gameCreated, gameActivity, gameCurrentPlayerId, gameCurrentStatementId, 
+                 gameCurrentState, gameTeamOneScore, gameTeamTwoScore FROM game WHERE gameCode = :gameCode";
+        $statement = $pdo->prepare($query);
+
+        //set parameters to execute
+        $parameters = ["gameCode" => $gameCode];
+        $statement->execute($parameters);
+
+        //grab game from MySQL
+        try {
+            $game = null;
+            $statement->setFetchMode(\PDO::FETCH_ASSOC);
+            $row = $statement->fetch();
+            if ($row !== false) {
+                $game = new Game($row["gameId"], $row["gameCode"], $row["gameCreated"], $row["gameActivity"],
+                    $row["gameCurrentPlayerId"], $row["gameCurrentStatementId"], $row["gameCurrentState"],
+                    $row["gameTeamOneScore"], $row["gameTeamTwoScore"]);
+            }
+        } catch (\Exception $exception) {
+            //if row can't be converted rethrow it
+            throw(new \PDOException($exception->getMessage(), 0, $exception));
+        }
+        return ($game);
+
+    }
+
+    /**
      * converts DateTimes and guids to string to serialize
      *
      * @return array converts DateTime to strings

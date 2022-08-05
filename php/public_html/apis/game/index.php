@@ -39,7 +39,7 @@ try {
 
     //check if resourceId is empty and method is delete or put
     if(($method === "DELETE" || $method === "PUT") && (empty($gameId) === true)) {
-        throw(new InvalidArgumentException("gameId can not be empty when deleting of changing", 400));
+        throw(new InvalidArgumentException("gameId can not be empty when deleting or changing", 400));
     }
 
     if($method === "GET") {
@@ -54,7 +54,8 @@ try {
                 $statement = Statement::getStatementByStatementId($pdo, $game->getGameCurrentStatementId());
                 $statementToSend = new Statement($statement->getStatementId(), $statement->getStatementText(),null,$statement->getStatementUsed(), $statement->getStatementPlayerId());
                 $votes = Vote::getVotesByStatementId($pdo, $statement->getStatementId());
-                $reply->data = (object) array('Game'=>$game, "CurrentStatement"=>$statementToSend, 'CurrentVotes'=>$votes, 'CurrentPlayer'=>$currentPlayer);
+                $players = Player::getPlayersByGameId($pdo, $gameId);
+                $reply->data = (object) array('Game'=>$game, "CurrentStatement"=>$statementToSend, 'CurrentVotes'=>$votes, 'CurrentPlayer'=>$currentPlayer, 'Players'=>$players);
             } else{
                 $reply->data = null;
             }
@@ -77,22 +78,81 @@ try {
         //Decodes content and stores result in $requestContent
         $requestObject = json_decode($requestContent);
 
-        if(!property_exists($requestObject, "gameCode")){$requestObject["gameCode"]=NULL;}
-
         if($method === "POST") {
             //makes sure required fields are available
-            if(empty($requestObject->gameCode) === true) {
+            if (!property_exists($requestObject, "gameCode")) {
                 throw(new \InvalidArgumentException("The Game Code field is empty.", 400));
             }
-
-            //create new game and insert it into the database
-            $game = new Game(generateUuidV4(), $requestObject->gameCode,null,null,
-                null,null,0,0,0);
-            $game->insert($pdo);
+            $game = Game::getGameByGameCode($pdo, $requestObject->gameCode);
+            if($game = null) {
+                //create new game and insert it into the database
+                $game = new Game(generateUuidV4(), $requestObject->gameCode, null, null,
+                    null, null, 0, 0, 0);
+                $game->insert($pdo);
+            }
+            $_SESSION["player"]->setPlayerGameId($game->getGameId());
+            Player::assignPlayerToTeam($pdo, $_SESSION["player"]);
+            $_SESSION["player"]->setPlayerTeamNumber(1);
+            $_SESSION["player"]->update($pdo);
             //update reply
             $reply->data = $game;
             $reply->message = "A new game entry has been created.";
+        } elseif ($method === "PUT") {
+            $game = Game::getGameByGameId($pdo, $gameId);
+            if($game === null) {
+                throw (new RuntimeException("Game to be updated does not exist", 404));
+            }
+
+            if (!property_exists($requestObject, "gameCode")) {
+                $requestObject["gameCode"]=$game->getGameCode();
+            }
+
+            if (!property_exists($requestObject, "gameCreated")) {
+                $requestObject["gameCreated"]=$game->getGameCreated();
+            }
+
+            $requestObject["gameActivity"] = null;
+
+            if (!property_exists($requestObject, "gameCurrentPlayerId")) {
+                $requestObject["gameCurrentPlayerId"]=$game->getGameCurrentPlayerId();
+            }
+
+            if (!property_exists($requestObject, "gameCurrentStatementId")) {
+                $requestObject["gameCurrentStatementId"]=$game->getGameCurrentStatementId();
+            }
+
+            if (!property_exists($requestObject, "gameCurrentState")) {
+                $requestObject["gameCurrentState"]=$game->getGameCurrentState();
+            }
+
+            if (!property_exists($requestObject, "gameTeamOneScore")) {
+                $requestObject["gameTeamOneScore"]=$game->getGameTeamOneScore();
+            }
+
+            if (!property_exists($requestObject, "gameTeamTwoScore")) {
+                $requestObject["gameTeamTwoScore"]=$game->getGameTeamTwoScore();
+            }
+            $game = new Game(
+                $gameId,
+                $requestObject["gameCode"],
+                $requestObject["gameCreated"],
+                $requestObject["gameActivity"],
+                $requestObject["gameCurrentPlayerId"],
+                $requestObject["gameCurrentStatementId"],
+                $requestObject["gameCurrentState"],
+                $requestObject["gameTeamOneScore"],
+                $requestObject["gameTeamTwoScore"]
+            );
+            $game->update($pdo);
         }
+    } elseif ($method === "DELETE" ) {
+        $game = Game::getGameByGameId($pdo, $gameId);
+        //make sure it exists
+        if($game === null) {
+            throw (new RuntimeException("Game to be deleted does not exist", 404));
+        }
+        $game->delete($pdo);
+        $reply->message = "Game deleted";
     } else {
         throw (new InvalidArgumentException("Invalid HTTP method request", 405));
     }
