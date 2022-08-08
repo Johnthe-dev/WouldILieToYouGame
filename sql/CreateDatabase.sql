@@ -47,5 +47,6 @@ create table Vote (
     voteTrue BOOLEAN not null,
     primary key (voteId),
     foreign key (voteStatementId) references Statement(statementId),
-    foreign key (votePlayerId) references Player(playerId)
+    foreign key (votePlayerId) references Player(playerId),
+    CONSTRAINT UC_Vote UNIQUE (votePlayerId,voteStatementId)
 );
