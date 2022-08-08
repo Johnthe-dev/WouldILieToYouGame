@@ -342,12 +342,12 @@ class Vote implements \JsonSerializable {
             $playerId = self::validateUuid($playerId);
         } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
             $exceptionType = get_class($exception);
-            throw(new $exceptionType("Vote Class Exception: getVoteByVoteId: " . $exception->getMessage(), 0, $exception));
+            throw(new $exceptionType("Vote Class Exception: getVotesByPlayerId: " . $exception->getMessage(), 0, $exception));
         }
 
         //create query template
         $query = "SELECT voteId,  voteStatementId, votePlayerId, voteTrue
-                    FROM vote WHERE voteStatementId = :voteStatementId";
+                    FROM vote WHERE votePlayerId = :votePlayerId";
         $statement = $pdo->prepare($query);
 
         //set parameters to execute
@@ -367,6 +367,61 @@ class Vote implements \JsonSerializable {
         }
 
         return ($votes);
+
+    }
+
+    /**
+     * get votes by playerId
+     *
+     * @param \PDO $pdo
+     * @param string $playerId
+     * @param string $statementId
+     * @return ?Vote
+     * @throws \PDOException when mysql related errors occur
+     * @throws \TypeError when variable doesn't follow typehints
+     * @throws \Exception
+     */
+    public static function getVotesByPlayerIdAndStatementId(\PDO $pdo, string $playerId, string $statementId): ?Vote
+    {
+        //trim and filter out invalid input
+        try {
+            $playerId = self::validateUuid($playerId);
+        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Vote Class Exception: getVotesByPlayerIdAndStatementId: " . $exception->getMessage(), 0, $exception));
+        }
+        try {
+            $statementId = self::validateUuid($statementId);
+        } catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+            $exceptionType = get_class($exception);
+            throw(new $exceptionType("Vote Class Exception: getVotesByPlayerIdAndStatementId: " . $exception->getMessage(), 0, $exception));
+        }
+
+        //create query template
+        $query = "SELECT voteId,  voteStatementId, votePlayerId, voteTrue
+                    FROM vote WHERE voteStatementId = :statementId AND votePlayerId = :playerId";
+        $statement = $pdo->prepare($query);
+
+        //set parameters to execute
+        $parameters = [
+            "playerId" => $playerId->getBytes(),
+            "statementId" => $statementId->getBytes()
+            ];
+        $statement->execute($parameters);
+
+        //grab vote from MySQL
+        try {
+            $vote = null;
+            $statement->setFetchMode(\PDO::FETCH_ASSOC);
+            $row = $statement->fetch();
+            if ($row !== false) {
+                $vote = new Vote($row["voteId"],  $row["voteStatementId"], $row["votePlayerId"], $row["voteTrue"]);
+            }
+        } catch (\Exception $exception) {
+            //if row can't be converted rethrow it
+            throw(new \PDOException($exception->getMessage(), 0, $exception));
+        }
+        return ($vote);
 
     }
 

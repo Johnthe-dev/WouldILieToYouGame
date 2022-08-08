@@ -2,21 +2,21 @@
 
 require_once dirname(__DIR__, 3) . "/vendor/autoload.php";
 require_once dirname(__DIR__, 3) . "/Classes/autoload.php";
-require_once("/etc/apache2/game/Secrets.php");
+require_once("/etc/apache2/statement/Secrets.php");
 require_once dirname(__DIR__, 3) . "/lib/xsrf.php";
 require_once dirname(__DIR__, 3) . "/lib/jwt.php";
 require_once dirname(__DIR__, 3) . "/lib/uuid.php";
 
-use JOHNTHEDEV\Game\{Game, Statement, Player, Vote};
+use JOHNTHEDEV\Game\{Statement, Player, Vote};
 
 /**
- * api for getting the game state, creating a game, etc.
+ * api for interacting with Statements.
  *
  * @author John Johnson-Rodgers <john@johnthe.dev>
  */
 
 //verify the session, start if inactive
-if(session_status() !== PHP_SESSION_ACTIVE) {
+if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
@@ -33,131 +33,42 @@ try {
     //determine which HTTP method was used
     $method = $_SERVER["HTTP_X_HTTP_METHOD"] ?? $_SERVER["REQUEST_METHOD"];
 
-    //sanitize input
-    $gameId = filter_input(INPUT_GET, "gameId", FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
-    $gameGetCurrentState = filter_input(INPUT_GET, "getCurrentState", FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-
-    //check if resourceId is empty and method is delete or put
-    if(($method === "DELETE" || $method === "PUT") && (empty($gameId) === true)) {
-        throw(new InvalidArgumentException("gameId can not be empty when deleting or changing", 400));
-    }
-
-    if($method === "GET") {
-        //set xsrf cookie
-        setXsrfCookie();
-
-        if(isset($gameId) === true && isset($gameGetCurrentState) === true && $gameGetCurrentState === true) {
-            //get game by game id
-            $game = Game::getGameByGameId($pdo, $gameId);
-            if($game!=null){
-                $currentPlayer = Player::getPlayerByPlayerId($pdo, $game->getGameCurrentPlayerId());
-                $statement = Statement::getStatementByStatementId($pdo, $game->getGameCurrentStatementId());
-                $statementToSend = new Statement($statement->getStatementId(), $statement->getStatementText(),null,$statement->getStatementUsed(), $statement->getStatementPlayerId());
-                $votes = Vote::getVotesByStatementId($pdo, $statement->getStatementId());
-                $players = Player::getPlayersByGameId($pdo, $gameId);
-                $reply->data = (object) array('Game'=>$game, "CurrentStatement"=>$statementToSend, 'CurrentVotes'=>$votes, 'CurrentPlayer'=>$currentPlayer, 'Players'=>$players);
-            } else{
-                $reply->data = null;
-            }
-
-        } elseif (isset($gameId) === true){
-            $game = Game::getGameByGameId($pdo, $gameId);
-            $reply->data = $game;
-        }
-
-    } elseif($method === "POST" || $method === "PUT") {
+    if ($method === "POST") {
         //enforce xsrf token
         verifyXsrf();
-        if(empty($_SESSION["player"]) === true) {
-            throw(new \InvalidArgumentException("You do not have permission to edit or add game", 401));
+        if (empty($_SESSION["player"]) === true) {
+            throw(new \InvalidArgumentException("You do not have permission to edit or add statement", 401));
         }
 
         //retrieves JSON package that was sent by the user and stores it in $requestContent using file_get_contents
         $requestContent = file_get_contents("php://input");
 
         //Decodes content and stores result in $requestContent
-        $requestObject = json_decode($requestContent);
-
-        if($method === "POST") {
+        $requestObjects = json_decode($requestContent);
+        $insertedStatements = array();
+        foreach ($requestObjects as $requestObject) {
             //makes sure required fields are available
-            if (!property_exists($requestObject, "gameCode")) {
-                throw(new \InvalidArgumentException("The Game Code field is empty.", 400));
+            if (!property_exists($requestObject, "statementText")) {
+                throw(new \InvalidArgumentException("The Statement Text field is empty.", 400));
             }
-            $game = Game::getGameByGameCode($pdo, $requestObject->gameCode);
-            if($game = null) {
-                //create new game and insert it into the database
-                $game = new Game(generateUuidV4(), $requestObject->gameCode, null, null,
-                    null, null, 0, 0, 0);
-                $game->insert($pdo);
+            if (!property_exists($requestObject, "statementTrue")) {
+                throw(new \InvalidArgumentException("The Statement True field is empty.", 400));
             }
-            $_SESSION["player"]->setPlayerGameId($game->getGameId());
-            Player::assignPlayerToTeam($pdo, $_SESSION["player"]);
-            $_SESSION["player"]->setPlayerTeamNumber(1);
-            $_SESSION["player"]->update($pdo);
-            //update reply
-            $reply->data = $game;
-            $reply->message = "A new game entry has been created.";
-        } elseif ($method === "PUT") {
-            $game = Game::getGameByGameId($pdo, $gameId);
-            if($game === null) {
-                throw (new RuntimeException("Game to be updated does not exist", 404));
+            if (!property_exists($requestObject, "statementPlayerId")) {
+                throw(new \InvalidArgumentException("The Statement Player Id field is empty.", 400));
             }
-
-            if (!property_exists($requestObject, "gameCode")) {
-                $requestObject["gameCode"]=$game->getGameCode();
-            }
-
-            if (!property_exists($requestObject, "gameCreated")) {
-                $requestObject["gameCreated"]=$game->getGameCreated();
-            }
-
-            $requestObject["gameActivity"] = null;
-
-            if (!property_exists($requestObject, "gameCurrentPlayerId")) {
-                $requestObject["gameCurrentPlayerId"]=$game->getGameCurrentPlayerId();
-            }
-
-            if (!property_exists($requestObject, "gameCurrentStatementId")) {
-                $requestObject["gameCurrentStatementId"]=$game->getGameCurrentStatementId();
-            }
-
-            if (!property_exists($requestObject, "gameCurrentState")) {
-                $requestObject["gameCurrentState"]=$game->getGameCurrentState();
-            }
-
-            if (!property_exists($requestObject, "gameTeamOneScore")) {
-                $requestObject["gameTeamOneScore"]=$game->getGameTeamOneScore();
-            }
-
-            if (!property_exists($requestObject, "gameTeamTwoScore")) {
-                $requestObject["gameTeamTwoScore"]=$game->getGameTeamTwoScore();
-            }
-            $game = new Game(
-                $gameId,
-                $requestObject["gameCode"],
-                $requestObject["gameCreated"],
-                $requestObject["gameActivity"],
-                $requestObject["gameCurrentPlayerId"],
-                $requestObject["gameCurrentStatementId"],
-                $requestObject["gameCurrentState"],
-                $requestObject["gameTeamOneScore"],
-                $requestObject["gameTeamTwoScore"]
-            );
-            $game->update($pdo);
+            $statement = new Statement(generateUuidV4(), $requestObject["statementText"], $requestContent["statementTrue"], false, $_SESSION["player"]->getPlayerId());
+            $statement->insert($pdo);
+            $insertedStatements[] = $statement;
         }
-    } elseif ($method === "DELETE" ) {
-        $game = Game::getGameByGameId($pdo, $gameId);
-        //make sure it exists
-        if($game === null) {
-            throw (new RuntimeException("Game to be deleted does not exist", 404));
-        }
-        $game->delete($pdo);
-        $reply->message = "Game deleted";
+        //update reply
+        $reply->data =  $insertedStatements;
+        $reply->message = "New statement entries have been created.";
     } else {
         throw (new InvalidArgumentException("Invalid HTTP method request", 405));
     }
 
-} catch(\Exception | \TypeError $exception) {
+} catch (\Exception|\TypeError $exception) {
     $reply->status = $exception->getCode();
     $reply->message = $exception->getMessage();
 }

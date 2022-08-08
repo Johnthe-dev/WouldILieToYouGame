@@ -235,6 +235,9 @@ try {
                         break;
                 }
             }
+            if($game!=null){
+                $reply->data = $game;
+            }
         }
     } elseif ($method === "DELETE" ) {
         $game = Game::getGameByGameId($pdo, $gameId);
