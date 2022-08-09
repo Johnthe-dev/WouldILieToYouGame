@@ -1,0 +1,61 @@
+version: "3"
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        -  subnet: 10.0.10.0/16
+services:
+  #letsencrypt-nginx-container:
+  #   container_name: 'letsencrypt-nginx-container'
+  #   image: nginx:latest
+  #   ports:
+  #      - "80:80"
+  #      - "443:443"
+  #   volumes:
+  #      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+  #      - ./public_html:/usr/share/nginx/html
+  php:
+    build: ./php
+    networks:
+      default:
+        ipv4_address: 10.0.10.10
+    depends_on:
+      - sql
+    env_file:
+      - ./docker-compose.env
+    ports:
+      - "8081:80"
+    volumes:
+      - ./php/classes:/var/www/classes
+      - ./php/public_html:/var/www/public_html
+      - ./php/lib:/var/www/lib
+  app:
+    build: ./app
+    networks:
+      default:
+        ipv4_address: 10.0.10.11
+    depends_on:
+      - php
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      #      - ./production.conf:/etc/nginx/conf.d/default.conf
+      #      - ./app:/usr/share/nginx/html
+      - ./dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem
+      - /docker-volumes/johnTheDev/etc/letsencrypt/live/wiltyonline.com/fullchain.pem:/etc/letsencrypt/live/wiltyonline.com/fullchain.pem
+      - /docker-volumes/johnTheDev/etc/letsencrypt/live/wiltyonline.com/privkey.pem:/etc/letsencrypt/live/wiltyonline.com/privkey.pem
+  sql:
+    build: ./sql
+    networks:
+      default:
+        ipv4_address: 10.0.10.12
+    volumes:
+      - wilty-sql:/var/lib/mysql
+    env_file:
+      - ./docker-compose.env
+volumes:
+  wilty-sql:

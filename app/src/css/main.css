@@ -1,0 +1,223 @@
+@import url("https://fonts.googleapis.com/css?family=Libre+Baskerville:regular"); /*$theme-colors: (*/
+/*"primary": #197BBD,*/
+/*"dark": #252422,*/
+/*"light": #FFFCF2,*/
+/*"secondary": #403D39,*/
+/*"info": #d67600,*/
+/*);*/
+
+body {
+    width: 100vw !important;
+    font-family: 'Alata', sans-serif !important;
+    font-size: large !important;
+    background-color: #FFFCF2;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Libre Baskerville', serif;
+}
+h1 {
+    font-size: x-large;
+}
+h2 {
+    font-size: larger;
+}
+h3 {
+    font-size: large;
+}
+
+#headerLogo {
+    height: 10vh;
+    min-height: 4em;
+}
+#johnPictureContainer {
+    box-shadow: 10px 0 20em 20em rgba(255, 252, 242, 1) inset;
+}
+#johnPicture {
+    max-width: 70%;
+}
+#contactForm {
+    display: block;
+    margin: auto !important;
+    height: 75vh;
+    border-radius: 2em;
+    border: solid 1em #197BBD;
+}
+#contactMessage {
+    display: block;
+    margin: auto !important;
+}
+.mainBg {
+    height: 85vh;
+}
+.systemMessage {
+    background: #d67600;
+    border-radius: 1em;
+}
+.userMessage {
+    background: #197BBD;
+    border-radius: 1em;
+}
+.loadingDots > span{
+    width:1rem;
+    height:1rem;
+    background-color: #403D39;
+    border-radius: 50%;
+    display: inline-block;
+}
+.loadingDots .loadOne{
+    animation: 1.5s appear infinite both;
+}
+.loadingDots .loadTwo{
+    animation: 1.5s appear infinite both;
+    animation-delay: .5s;
+}
+.loadingDots .loadThree{
+    animation: 1.5s appear infinite both;
+    animation-delay: 1s;
+}
+@keyframes appear {
+    40%,60%{
+        opacity: 0.5;
+    }
+    0%,100%{
+        opacity: 1;
+    }
+}
+.overflowGone {
+    overflow: hidden;
+}
+
+.logo-icon{
+    width: 15vw !important;
+    min-width: 200px;
+    height: auto;
+}
+.logo-card{
+    border-top: solid .2em #d67600;
+}
+.hover-effect {
+    width:100%;
+    height:100%;
+    float:left;
+    overflow:hidden;
+    position:relative;
+    text-align:center;
+    cursor:default;
+}
+
+.hover-effect .overlay {
+    width:100%;
+    height:100%;
+    position:absolute;
+    overflow:hidden;
+    top:0;
+    left:0;
+    opacity:0;
+    background-color:rgba(64,61,57,.9);
+    -webkit-transition:all .4s ease-in-out;
+    transition:all .4s ease-in-out
+}
+
+.hover-effect img {
+    display:block;
+    position:relative;
+    max-width: 100%;
+    -webkit-transition:all .4s linear;
+    transition:all .4s linear;
+}
+
+.hover-effect h2 {
+    text-transform:uppercase;
+    color:#fff;
+    text-align:center;
+    position:relative;
+    font-size:x-large !important;
+    background:rgba(0,0,0,0.6);
+    -webkit-transform:translatey(-100px);
+    -ms-transform:translatey(-100px);
+    transform:translatey(-100px);
+    -webkit-transition:all .2s ease-in-out;
+    transition:all .2s ease-in-out;
+    padding:10px;
+}
+
+.hover-effect a.info {
+    text-decoration:none;
+    display:inline-block;
+    text-transform:uppercase;
+    color:#fff;
+    border:1px solid #fff;
+    background-color:transparent;
+    opacity:0;
+    filter:alpha(opacity=0);
+    -webkit-transition:all .2s ease-in-out;
+    transition:all .2s ease-in-out;
+    margin:50px 0 0;
+    padding:7px 14px;
+}
+
+.hover-effect a.info:hover {
+    box-shadow:0 0 5px #fff;
+}
+
+.hover-effect:hover img {
+    -ms-transform:scale(1.2);
+    -webkit-transform:scale(1.2);
+    transform:scale(1.2);
+}
+
+.hover-effect:hover .overlay {
+    opacity:1;
+    filter:alpha(opacity=100);
+}
+
+.hover-effect:hover h2,.hover-effect:hover a.info {
+    opacity:1;
+    filter:alpha(opacity=100);
+    -ms-transform:translatey(0);
+    -webkit-transform:translatey(0);
+    transform:translatey(0);
+}
+
+.hover-effect:hover a.info {
+    -webkit-transition-delay:.2s;
+    transition-delay:.2s;
+}
+
+#logo {
+    color: inherit;
+}
+.text {
+    font-family: LibreBaskerville-Regular, Libre Baskerville, serif;
+
+}
+
+#John{
+    font-size: 50px;
+    font-weight: 500;
+}
+
+#the_Dev {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.rectangles {
+    fill: none;
+    stroke-linejoin: round;
+    stroke-width: 1px;
+}
+.headerBorder{
+    border-bottom: solid 5px #d67600;
+}
+
+a {
+    color: #197BBD;
+    cursor: pointer;
+}
+
+a:hover{
+    font-weight: bold;
+    text-decoration: underline #197BBD;
+}

@@ -1,0 +1,11 @@
+//customizing theme palate to match design
+$theme-colors: (
+        "primary": #197BBD,
+        "dark": #252422,
+        "light": #FFFCF2,
+        "secondary": #403D39,
+        "info": #d67600,
+);
+
+// Include in all of Bootstrap
+@import "../../node_modules/bootstrap/scss/bootstrap";
