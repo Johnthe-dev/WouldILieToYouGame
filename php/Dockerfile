@@ -20,11 +20,11 @@ FROM webdevops/php-apache-dev:8.0-alpine
 # copy vendor into the project from the prebuild stage
 COPY --from=vendor /app/vendor/ /var/www/vendor/
 
-RUN mkdir /etc/apache2/JohnTheDev
-COPY secret/config /etc/apache2/JohnTheDev
+RUN mkdir /etc/apache2/game
+COPY secret/config /etc/apache2/game
 
-RUN touch /etc/apache2/JohnTheDev/SecretCred.ini
-RUN php /etc/apache2/JohnTheDev/SecretConfig.php
+RUN touch /etc/apache2/game/SecretCred.ini
+RUN php /etc/apache2/game/SecretConfig.php
 
 # configure Secrets for protected information
 WORKDIR /var/www/
